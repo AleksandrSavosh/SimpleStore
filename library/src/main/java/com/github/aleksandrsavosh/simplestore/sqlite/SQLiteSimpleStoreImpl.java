@@ -1,32 +1,37 @@
 package com.github.aleksandrsavosh.simplestore.sqlite;
 
-import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import com.github.aleksandrsavosh.simplestore.Base;
 import com.github.aleksandrsavosh.simplestore.SimpleStore;
 
+import java.util.Date;
+
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model> {
 
-    class Helper extends SQLiteOpenHelper {
+    Class<Model> clazz;
+    SQLiteHelper sqLiteHelper;
 
-        public Helper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
-            super(context, name, factory, version);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-        }
+    public SQLiteSimpleStoreImpl(Class<Model> clazz, SQLiteHelper sqLiteHelper) {
+        this.clazz = clazz;
+        this.sqLiteHelper = sqLiteHelper;
     }
 
     @Override
     public Model create(Model model) {
+
+        String objectId = sqLiteHelper.generateId(clazz);
+        model.setObjectId(objectId);
+        model.setCreatedAt(new Date());
+        model.setUpdatedAt(new Date());
+
+        SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
+
+        database.insert(
+                sqLiteHelper.getTableName(model.getClass()),
+                null,
+                sqLiteHelper.getContentValues(model)
+        );
+
         return null;
     }
 
