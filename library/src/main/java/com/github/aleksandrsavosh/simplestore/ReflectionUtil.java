@@ -23,7 +23,20 @@ public class ReflectionUtil {
         return results;
     }
 
-
+    public static Set<Field> getFields(final Class clazz, Set<Class> fieldTytes){
+        Set<Field> result = new HashSet<Field>();
+        for(Field field : clazz.getFields()){
+            if(fieldTytes.contains(field.getType())){
+                result.add(field);
+            }
+        }
+        for(Field field : clazz.getDeclaredFields()){
+            if(fieldTytes.contains(field.getType())){
+                result.add(field);
+            }
+        }
+        return result;
+    }
 
 
 }

@@ -27,7 +27,7 @@ public class SimpleStoreFactory {
         sqLiteHelper.close();
     }
 
-    public <Model extends Base> SimpleStore<Model> getLocalStore(Class<Model> aClass){
+    public <Model extends Base> SimpleStore<Model, Long> getLocalStore(Class<Model> aClass){
         return new SQLiteSimpleStoreImpl<Model>(aClass, sqLiteHelper);
     }
 

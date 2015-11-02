@@ -6,31 +6,34 @@ import java.util.Date;
 /**
  * Base class of model
  * This class keep info about model
- * objectId - this is unique id of model
+ * _id - this is unique local id
+ * objectId - this is unique cloud id
  * createdAt - create date
  * updatedAt - update date
+ *
+ * equals and hashCode doesn't contain logic with localId and cloudId fields
  */
 public abstract class Base implements Serializable {
 
-    private String objectId;
+    private Long localId;
+    private String cloudId;
     private Date createdAt;
     private Date updatedAt;
 
-    public Base() {
+    public Long getLocalId() {
+        return localId;
     }
 
-    public Base(String objectId, Date createdAt, Date updatedAt) {
-        this.objectId = objectId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    public void setLocalId(Long localId) {
+        this.localId = localId;
     }
 
-    public String getObjectId() {
-        return objectId;
+    public String getCloudId() {
+        return cloudId;
     }
 
-    public void setObjectId(String objectId) {
-        this.objectId = objectId;
+    public void setCloudId(String cloudId) {
+        this.cloudId = cloudId;
     }
 
     public Date getCreatedAt() {
@@ -56,7 +59,6 @@ public abstract class Base implements Serializable {
 
         Base base = (Base) o;
 
-        if (objectId != null ? !objectId.equals(base.objectId) : base.objectId != null) return false;
         if (createdAt != null ? !createdAt.equals(base.createdAt) : base.createdAt != null) return false;
         return !(updatedAt != null ? !updatedAt.equals(base.updatedAt) : base.updatedAt != null);
 
@@ -64,16 +66,16 @@ public abstract class Base implements Serializable {
 
     @Override
     public int hashCode() {
-        int result = objectId != null ? objectId.hashCode() : 0;
-        result = 31 * result + (createdAt != null ? createdAt.hashCode() : 0);
+        int result = createdAt != null ? createdAt.hashCode() : 0;
         result = 31 * result + (updatedAt != null ? updatedAt.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
-        return "{Class=Base" +
-                ", objectId='" + objectId + '\'' +
+        return "Base{" +
+                "localId=" + localId +
+                ", cloudId='" + cloudId + '\'' +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
