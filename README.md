@@ -4,9 +4,9 @@
 
 SimpleStore is a library that provides opportunity easy persist model objects to different data stores. 
 
-*Available stores:
--Local store (SQLite)
--Cloud store (in future)
+** Available stores: ** 
+ - Local store (SQLite)
+ - Cloud store (in future)
 
 ##How to start:
 `class MyModel extends Base {}
