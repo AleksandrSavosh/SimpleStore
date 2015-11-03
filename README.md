@@ -2,7 +2,7 @@
 
 ##Overview
 
-SimpleStore is a library that provides opportunity easy persist model objects to different data stores. 
+SimpleStore is a library that provides handy way to save any model objects to different data stores.
 
 **Available stores:** 
  - Local store (SQLite)
