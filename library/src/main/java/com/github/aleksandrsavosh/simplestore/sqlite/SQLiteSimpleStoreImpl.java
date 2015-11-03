@@ -6,7 +6,9 @@ import com.github.aleksandrsavosh.simplestore.Base;
 import com.github.aleksandrsavosh.simplestore.LogUtil;
 import com.github.aleksandrsavosh.simplestore.SimpleStore;
 import com.github.aleksandrsavosh.simplestore.exception.CreateException;
+import com.github.aleksandrsavosh.simplestore.exception.DeleteException;
 import com.github.aleksandrsavosh.simplestore.exception.ReadException;
+import com.github.aleksandrsavosh.simplestore.exception.UpdateException;
 
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model, Long> {
 
@@ -82,4 +84,80 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         }
     }
 
+    @Override
+    public Model update(Model model) {
+        try {
+            return updateThrowException(model);
+        } catch (UpdateException e){
+            LogUtil.toLog("Update exception", e);
+        }
+        return null;
+    }
+
+    @Override
+    public Model updateThrowException(Model model) throws UpdateException {
+        int row;
+        try {
+            SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
+
+            row = database.update(
+                    sqLiteHelper.getTableName(clazz),
+                    sqLiteHelper.getContentValuesForUpdate(model),
+                    "_id=?",
+                    new String[]{Long.toString(model.getLocalId())}
+            );
+
+        } catch (Exception e){
+            throw new UpdateException("Update model exception");
+        }
+
+        if(row == 0){
+            throw new UpdateException("Not found model for update");
+        }
+
+        return model;
+    }
+
+    @Override
+    public boolean delete(Long pk) {
+        try {
+            return deleteThrowException(pk);
+        } catch (DeleteException e){
+            LogUtil.toLog("Delete exception", e);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteThrowException(Long pk) throws DeleteException {
+        SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
+
+        int row = database.delete(
+                sqLiteHelper.getTableName(clazz),
+                "_id=?",
+                new String[]{Long.toString(pk)}
+        );
+
+        if(row == 0){
+            throw new DeleteException("No models found for delete");
+        }
+
+        return true;
+    }
+
+    @Override
+    public Model createWithRelations(Model model) {
+        return null;
+    }
+
+    @Override
+    public Model createWithRelationsThrowException(Model model) throws CreateException {
+
+//        List<Model>
+
+
+
+
+        return null;
+    }
 }

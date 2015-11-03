@@ -1,6 +1,7 @@
 package com.github.aleksandrsavosh.simplestore;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,33 +10,25 @@ import java.util.Set;
  */
 public class ReflectionUtil {
 
-    public static Set<Field> getFieldsWithAccessible(Class clazz, Set<Class> classesType) {
-        Set<Field> results = new HashSet<Field>();
-        while(clazz != null){
-            for(Field field : clazz.getDeclaredFields()){
-                field.setAccessible(true);
-                if(classesType.contains(field.getType())){
-                    results.add(field);
-                }
-            }
-            clazz = clazz.getSuperclass();
-        }
-        return results;
-    }
-
-    public static Set<Field> getFields(final Class clazz, Set<Class> fieldTytes){
+    public static Set<Field> getFields(final Class clazz, Set<Class> fieldTypes){
         Set<Field> result = new HashSet<Field>();
         for(Field field : clazz.getFields()){
-            if(fieldTytes.contains(field.getType())){
+            if(fieldTypes.contains(field.getType())){
                 result.add(field);
             }
         }
         for(Field field : clazz.getDeclaredFields()){
-            if(fieldTytes.contains(field.getType())){
+            if(fieldTypes.contains(field.getType())){
                 result.add(field);
             }
         }
         return result;
+    }
+
+
+    public static Class getGenericType(Field field) {
+        ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+        return (Class) stringListType.getActualTypeArguments()[0];
     }
 
 

@@ -15,7 +15,7 @@ import java.util.*;
 
 public class SQLiteHelper extends SQLiteOpenHelper {
 
-    private Set<Class<? extends Base>> dbClasses;
+    private Set<Class<? extends Base>> modelClasses;
     private Set<Class> simpleFields = new HashSet<Class>();
     {
         simpleFields.add(Integer.class);
@@ -24,19 +24,20 @@ public class SQLiteHelper extends SQLiteOpenHelper {
     }
 
 
-    public SQLiteHelper(Context context, String name, int version, Set<Class<? extends Base>> dbClasses) {
+    public SQLiteHelper(Context context, String name, int version, Set<Class<? extends Base>> modelClasses) {
         super(context, name, null, version);
-        this.dbClasses = dbClasses;
+        this.modelClasses = modelClasses;
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
 
         final List<String> queries = new ArrayList<String>();
-        for(Class<? extends Base> clazz : dbClasses){
+        for(Class<? extends Base> clazz : modelClasses){
             queries.add(getCreateTableQuery(clazz));
         }
 
+        //create tables for model
         execInTransaction(db, new QueryExecutor() {
             @Override
             public void exec(SQLiteDatabase db) {
@@ -46,32 +47,82 @@ public class SQLiteHelper extends SQLiteOpenHelper {
                 }
             }
         });
+
+
+        //create table for relations between models
+        final List<String> queriesOfCreateRelationTables = new ArrayList<String>();
+        for(Class<? extends Base> clazz : modelClasses){
+            for(Field field : ReflectionUtil.getFields(clazz, new HashSet<Class>(){{ addAll(modelClasses); }})){
+                field.setAccessible(true);
+                Class<? extends Base> type = (Class<? extends Base>) field.getType();
+                queriesOfCreateRelationTables.add(getCreateRelationTableQuery(clazz, type));
+            }
+
+            for(Field field : ReflectionUtil.getFields(clazz, new HashSet<Class>(){{
+                add(Collection.class);
+                add(List.class);
+                add(Set.class);
+            }})){
+                field.setAccessible(true);
+                Class<? extends Base> type = ReflectionUtil.getGenericType(field);
+                queriesOfCreateRelationTables.add(getCreateRelationTableQuery(clazz, type));
+            }
+        }
+
+        execInTransaction(db, new QueryExecutor() {
+            @Override
+            public void exec(SQLiteDatabase db) {
+                for (String query : queriesOfCreateRelationTables) {
+                    LogUtil.toLog(query);
+                    db.execSQL(query);
+                }
+            }
+        });
+
+
+    }
+
+
+
+    private String getCreateRelationTableQuery(Class<? extends Base> clazz, Class<? extends Base> type) {
+        final String lineSeparator = System.getProperty("line.separator");
+        final String tab = "    ";
+        String sb = lineSeparator +
+                "CREATE TABLE " + getRelationTableName(clazz, type) + " ( " + lineSeparator +
+                tab + "_id INTEGER primary key not null, " + lineSeparator +
+                tab + clazz.getSimpleName().toLowerCase() + "_id INTEGER not null, " + lineSeparator +
+                tab + type.getSimpleName().toLowerCase() + "_id INTEGER not null " + lineSeparator +
+                ")";
+
+        return sb;
+    }
+
+    private String getRelationTableName(Class<? extends Base> clazz, Class<? extends Base> type) {
+        return clazz.getSimpleName().toUpperCase() + "_" + type.getSimpleName().toUpperCase();
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+        Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
+
+        if (c.moveToFirst()) {
+            while ( !c.isAfterLast() ) {
+                db.execSQL("DROP TABLE IF EXISTS " + c.getString(0));
+                c.moveToNext();
+            }
+        }
+
+        c.close();
+
+        onCreate(db);
     }
 
-//    public String generateId(Class<? extends Base> clazz) {
-//        String id;
-//        Cursor cursor;
-//        do {
-//            id = (int) (Math.random() * Integer.MAX_VALUE) + "";
-//            SQLiteDatabase db = getReadableDatabase();
-//            cursor = db.query(
-//                    getTableName(clazz),
-//                    new String[]{"_id"},
-//                    "_id=?",
-//                    new String[]{id},
-//                    null,
-//                    null,
-//                    null
-//            );
-//        } while(cursor.getCount() != 0);
-//
-//        return id;
-//    }
+    public <Model extends Base> ContentValues getContentValuesForUpdate(Model model) throws IllegalAccessException {
+        ContentValues contentValues = getContentValuesForCreate(model);
+        contentValues.remove("createdAt");
+        return contentValues;
+    }
 
     public <Model extends Base> ContentValues getContentValuesForCreate(final Model model) throws IllegalAccessException {
         ContentValues values = new ContentValues();
@@ -185,7 +236,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
     private String getCreateTableQuery(final Class<? extends Base> clazz) {
         final String lineSeparator = System.getProperty("line.separator");
         final String tab = "    ";
-        StringBuilder sb = new StringBuilder("CREATE TABLE " + getTableName(clazz) + " ( " +
+        StringBuilder sb = new StringBuilder(lineSeparator +
+                "CREATE TABLE " + getTableName(clazz) + " ( " + lineSeparator +
             tab + "_id INTEGER primary key not null, " + lineSeparator +
             tab + "cloudId TEXT, " + lineSeparator +
             tab + "createdAt INTEGER, " + lineSeparator +

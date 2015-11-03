@@ -10,6 +10,18 @@ import java.util.HashSet;
 
 public class Application extends android.app.Application {
 
+    public static class Test2 extends Base {
+        public String str = "test2";
+        public Test test = new Test();
+
+        @Override
+        public String toString() {
+            return "Test2{" +
+                    "str='" + str + '\'' +
+                    ", test=" + test +
+                    "} " + super.toString();
+        }
+    }
 
     public static class Test extends Base {
         private Integer ints = 50;
@@ -56,17 +68,17 @@ public class Application extends android.app.Application {
 
         SimpleStoreFactory factory = SimpleStoreFactory.instance(this);
 
-        factory.initLocalStore(1, new HashSet<Class<? extends Base>>(){{ add(Test.class); }});
-
         LogUtil.setIsUseLog(true);
 
-        SimpleStore<Test, Long> store = factory.getLocalStore(Test.class);
+        factory.initLocalStore(6, new HashSet<Class<? extends Base>>(){{ add(Test.class); add(Test2.class); }});
 
-        Test test = new Test();
+        SimpleStore<Test2, Long> store = factory.getLocalStore(Test2.class);
+
+        Test2 test = new Test2();
 
         test = store.create(test);
 
-        Test test1 = store.read(test.getLocalId());
+        Test2 test1 = store.read(test.getLocalId());
 
         System.out.println("TEST: " + test1);
 
