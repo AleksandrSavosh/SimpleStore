@@ -2,6 +2,8 @@ package com.github.aleksandrsavosh.simplestore;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteHelper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -232,6 +234,56 @@ public class SimpleStoreUtil {
         }
         return contentValues;
     }
+
+    /**
+     * метод получает все таблицы которые есть а базе данных
+     * @return лист таблиц
+     */
+    public static List<String> getTableNames(SQLiteDatabase db){
+        //get all table names
+        Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
+
+        List<String> list = new ArrayList<String>();
+
+        //drop all tables
+        if (c.moveToFirst()) {
+            while ( !c.isAfterLast() ) {
+                list.add(c.getString(0));
+                c.moveToNext();
+            }
+        }
+        c.close();
+
+        return list;
+    }
+
+    /**
+     * Get table data
+     * @return list of lists where list.get(0) its column names
+     */
+    public static List<List<String>> getTableData(SQLiteDatabase db, String table){
+        Cursor c = db.rawQuery("select * from " + table, null);
+
+        List<List<String>> result = new ArrayList<List<String>>();
+        List<String> columnNames = new ArrayList<String>(Arrays.asList(c.getColumnNames()));
+        result.add(columnNames);
+
+        while(c.moveToNext()){
+            List<String> data = new ArrayList<String>();
+            for(int i = 0; i < columnNames.size(); i++){
+                String name = columnNames.get(i);
+                int index = c.getColumnIndex(name);
+                data.add(c.getString(index));
+            }
+            result.add(data);
+        }
+        c.close();
+
+        return result;
+    }
+
+
+
 
 
     static class A extends Base {

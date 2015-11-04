@@ -8,6 +8,7 @@ import java.util.Set;
 
 public class SimpleStoreFactory {
 
+    public static SimpleStoreFactory instance;
     private Context context;
     private SQLiteHelper sqLiteHelper;
 
@@ -16,7 +17,8 @@ public class SimpleStoreFactory {
     }
 
     public static SimpleStoreFactory instance(Context context){
-        return new SimpleStoreFactory(context);
+        instance = new SimpleStoreFactory(context);
+        return instance;
     }
 
     public void initLocalStore(int appVersion, Set<Class<? extends Base>> models){
@@ -32,4 +34,7 @@ public class SimpleStoreFactory {
         return new SQLiteSimpleStoreImpl<Model>(aClass, sqLiteHelper);
     }
 
+    public SQLiteHelper getSqLiteHelper() {
+        return sqLiteHelper;
+    }
 }
