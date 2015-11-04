@@ -2,13 +2,14 @@ package com.github.aleksandrsavosh.simplestore.sqlite;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import com.github.aleksandrsavosh.simplestore.Base;
-import com.github.aleksandrsavosh.simplestore.LogUtil;
-import com.github.aleksandrsavosh.simplestore.SimpleStore;
+import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.CreateException;
 import com.github.aleksandrsavosh.simplestore.exception.DeleteException;
 import com.github.aleksandrsavosh.simplestore.exception.ReadException;
 import com.github.aleksandrsavosh.simplestore.exception.UpdateException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model, Long> {
 
@@ -32,12 +33,16 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model createThrowException(Model model) throws CreateException {
+        return createThrowExceptionCommon(model);
+    }
+
+    private <T extends Base> T createThrowExceptionCommon(T model) throws CreateException {
         try {
             SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
             Long localId = database.insert(
-                    sqLiteHelper.getTableName(model.getClass()),
+                    SimpleStoreUtil.getTableName(model.getClass()),
                     null,
-                    sqLiteHelper.getContentValuesForCreate(model)
+                    SimpleStoreUtil.getContentValuesForCreate(model)
             );
             model.setLocalId(localId);
         } catch(Exception e){
@@ -61,8 +66,8 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
         SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
         Cursor cursor = database.query(
-            sqLiteHelper.getTableName(clazz),
-            sqLiteHelper.getColumns(clazz),
+            SimpleStoreUtil.getTableName(clazz),
+                SimpleStoreUtil.getColumns(clazz),
             "_id=?",
             new String[]{Long.toString(pk)},
             null,
@@ -76,7 +81,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         }
 
         try {
-            return sqLiteHelper.getModel(cursor, clazz);
+            return SimpleStoreUtil.getModel(cursor, clazz);
         } catch (Exception e){
             throw new ReadException("Create model exception");
         } finally {
@@ -101,8 +106,8 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
             SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
 
             row = database.update(
-                    sqLiteHelper.getTableName(clazz),
-                    sqLiteHelper.getContentValuesForUpdate(model),
+                    SimpleStoreUtil.getTableName(clazz),
+                    SimpleStoreUtil.getContentValuesForUpdate(model),
                     "_id=?",
                     new String[]{Long.toString(model.getLocalId())}
             );
@@ -133,7 +138,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
 
         int row = database.delete(
-                sqLiteHelper.getTableName(clazz),
+                SimpleStoreUtil.getTableName(clazz),
                 "_id=?",
                 new String[]{Long.toString(pk)}
         );
@@ -147,17 +152,48 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model createWithRelations(Model model) {
+        try {
+            return createWithRelationsThrowException(model);
+        } catch(CreateException e){
+            LogUtil.toLog("Create with relations exception", e);
+        }
         return null;
     }
 
     @Override
     public Model createWithRelationsThrowException(Model model) throws CreateException {
+        return createWithRelationsThrowExceptionCommon(model);
+    }
 
-//        List<Model>
+    private <T extends Base> T createWithRelationsThrowExceptionCommon(T model) throws CreateException {
+        try {
+            //create parent
+            model = createThrowExceptionCommon(model);
 
+            //create childs
+            List<? extends Base> childs = SimpleStoreUtil.getModelChildrenObjects(model);
+            for(Base base : childs){
+                base = createWithRelationsThrowExceptionCommon(base);
 
+                //create relations
+                if(!appendChildToParentCommon(model, base)){
+                    throw new CreateException("Not create relation");
+                }
+            }
 
+            return model;
+        } catch (IllegalAccessException e) {
+            throw new CreateException("Can not create model with relations", e);
+        }
+    }
 
-        return null;
+    private boolean appendChildToParentCommon(Base parent, Base child) throws CreateException {
+        SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
+        long rowId = database.insert(
+                SimpleStoreUtil.getTableName(parent.getClass(), child.getClass()),
+                null,
+                SimpleStoreUtil.getContentValuesForRelationClasses(parent, child)
+        );
+        return rowId != -1;
     }
 }

@@ -20,7 +20,8 @@ public class SimpleStoreFactory {
     }
 
     public void initLocalStore(int appVersion, Set<Class<? extends Base>> models){
-        sqLiteHelper = new SQLiteHelper(context, "SimpleStore", appVersion, models);
+        Const.modelClasses = models;
+        sqLiteHelper = new SQLiteHelper(context, "SimpleStore", appVersion);
     }
 
     public void destroy(){

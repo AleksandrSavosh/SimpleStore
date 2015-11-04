@@ -70,17 +70,15 @@ public class Application extends android.app.Application {
 
         LogUtil.setIsUseLog(true);
 
-        factory.initLocalStore(6, new HashSet<Class<? extends Base>>(){{ add(Test.class); add(Test2.class); }});
+        factory.initLocalStore(7, new HashSet<Class<? extends Base>>(){{ add(Test.class); add(Test2.class); }});
 
         SimpleStore<Test2, Long> store = factory.getLocalStore(Test2.class);
 
         Test2 test = new Test2();
 
-        test = store.create(test);
+        test = store.createWithRelations(test);
 
-        Test2 test1 = store.read(test.getLocalId());
-
-        System.out.println("TEST: " + test1);
+        System.out.println("TEST: " + test);
 
         factory.destroy();
     }
