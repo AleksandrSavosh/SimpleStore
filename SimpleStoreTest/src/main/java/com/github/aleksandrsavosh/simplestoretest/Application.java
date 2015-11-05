@@ -5,25 +5,44 @@ import com.github.aleksandrsavosh.simplestore.LogUtil;
 import com.github.aleksandrsavosh.simplestore.SimpleStore;
 import com.github.aleksandrsavosh.simplestore.SimpleStoreFactory;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 
 public class Application extends android.app.Application {
 
-    public static class Test2 extends Base {
-        public String str = "test2";
-        public Test test = new Test();
+    public static class CCC extends Base {
+        public String test = "test333";
 
         @Override
         public String toString() {
-            return "Test2{" +
-                    "str='" + str + '\'' +
-                    ", test=" + test +
+            return "CCC{" +
+                    "test='" + test + '\'' +
                     "} " + super.toString();
         }
     }
 
-    public static class Test extends Base {
+    public static class BBB extends Base {
+        public String str = "test2";
+        public AAA AAA = new AAA();
+        public List<CCC> testList = new ArrayList<CCC>(){{
+            add(new CCC());
+            add(new CCC());
+            add(new CCC());
+        }};
+
+        @Override
+        public String toString() {
+            return "BBB{" +
+                    "str='" + str + '\'' +
+                    ", AAA=" + AAA +
+                    ", testList=" + testList +
+                    "} " + super.toString();
+        }
+    }
+
+    public static class AAA extends Base {
         private Integer ints = 50;
         private String str;
         private Date date = new Date();
@@ -54,7 +73,7 @@ public class Application extends android.app.Application {
 
         @Override
         public String toString() {
-            return "Test{" +
+            return "AAA{" +
                     "ints=" + ints +
                     ", str='" + str + '\'' +
                     ", date=" + date +
@@ -70,15 +89,20 @@ public class Application extends android.app.Application {
 
         LogUtil.setIsUseLog(true);
 
-        factory.initLocalStore(7, new HashSet<Class<? extends Base>>(){{ add(Test.class); add(Test2.class); }});
+        factory.initLocalStore(12, new HashSet<Class<? extends Base>>(){{ add(AAA.class); add(BBB.class); add(CCC.class); }});
 
-        SimpleStore<Test2, Long> store = factory.getLocalStore(Test2.class);
+        SimpleStore<BBB, Long> store = factory.getLocalStore(BBB.class);
 
-        Test2 test = new Test2();
+        BBB test = new BBB();
 
         test = store.createWithRelations(test);
 
         System.out.println("TEST: " + test);
+        System.out.println("TEST2: " + store.readWithRelations(test.getLocalId()));
+
+
+        store.deleteWithRelations(test.getLocalId());
+
 
         factory.destroy();
     }

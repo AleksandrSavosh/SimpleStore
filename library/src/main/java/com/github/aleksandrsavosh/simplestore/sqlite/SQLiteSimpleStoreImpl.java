@@ -8,8 +8,8 @@ import com.github.aleksandrsavosh.simplestore.exception.DeleteException;
 import com.github.aleksandrsavosh.simplestore.exception.ReadException;
 import com.github.aleksandrsavosh.simplestore.exception.UpdateException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Field;
+import java.util.*;
 
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model, Long> {
 
@@ -63,16 +63,19 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model readThrowException(Long pk) throws ReadException {
+        return (Model) readThrowExceptionCommon(pk, clazz);
+    }
 
+    public Base readThrowExceptionCommon(Long pk, Class<? extends Base> forClass) throws ReadException  {
         SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
         Cursor cursor = database.query(
-            SimpleStoreUtil.getTableName(clazz),
-                SimpleStoreUtil.getColumns(clazz),
-            "_id=?",
-            new String[]{Long.toString(pk)},
-            null,
-            null,
-            null
+                SimpleStoreUtil.getTableName(forClass),
+                SimpleStoreUtil.getColumns(forClass),
+                "_id=?",
+                new String[]{Long.toString(pk)},
+                null,
+                null,
+                null
         );
 
         if(!cursor.moveToNext()) {
@@ -81,7 +84,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         }
 
         try {
-            return SimpleStoreUtil.getModel(cursor, clazz);
+            return SimpleStoreUtil.getModel(cursor, forClass);
         } catch (Exception e){
             throw new ReadException("Create model exception");
         } finally {
@@ -135,19 +138,32 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public boolean deleteThrowException(Long pk) throws DeleteException {
+        if(!deleteCommon(pk, clazz)){
+            throw new DeleteException("No models found for delete");
+        }
+        return true;
+    }
+
+    public boolean deleteCommon(Long pk, Class<? extends Base> clazz){
         SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
 
-        int row = database.delete(
+        //delete from object table
+        int result = database.delete(
                 SimpleStoreUtil.getTableName(clazz),
                 "_id=?",
                 new String[]{Long.toString(pk)}
         );
 
-        if(row == 0){
-            throw new DeleteException("No models found for delete");
+
+        //delete from all relation table
+        List<String> allRelationTableNames = SimpleStoreUtil.getAllRelationTableNames(database, clazz);
+
+        for(String table : allRelationTableNames){
+            String columnName = SimpleStoreUtil.getRelationTableColumn(clazz);
+            database.delete(table, columnName + "=?", new String[]{Long.toString(pk)});
         }
 
-        return true;
+        return result != 0;
     }
 
     @Override
@@ -196,4 +212,147 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         );
         return rowId != -1;
     }
+
+    @Override
+    public Model readWithRelations(Long aLong) {
+        try {
+            return readWithRelationsThrowException(aLong);
+        } catch(ReadException e){
+            LogUtil.toLog("Read with relations exception", e);
+        }
+        return null;
+    }
+
+    @Override
+    public Model readWithRelationsThrowException(Long pk) throws ReadException {
+        return (Model) readWithRelationsThrowExceptionCommon(pk, clazz);
+    }
+
+    public Base readWithRelationsThrowExceptionCommon(Long pk, Class<? extends Base> forClazz) throws ReadException {
+        //read parent
+        Base model = readThrowExceptionCommon(pk, forClazz);
+
+        //read one to one relations
+        for(Field field : ReflectionUtil.getFields(forClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+            field.setAccessible(true);
+            Class type = field.getType();
+
+            List<Long> ids = getRelationsIds(pk, forClazz, type);
+            if(ids.size() > 1){
+                throw new ReadException("To much children for one model property");
+            }
+
+            if(ids.size() == 1){
+                try {
+                    Base child = readWithRelationsThrowExceptionCommon(ids.get(0), type);
+                    field.set(model, child);
+                } catch (IllegalAccessException e) {
+                    throw new ReadException(e);
+                }
+            }
+        }
+
+        //read one to many relations
+        for(Field field : ReflectionUtil.getFields(forClazz, Const.collections)) {
+            field.setAccessible(true);
+            Class collType = field.getType();
+            Class genType = ReflectionUtil.getGenericType(field);
+
+            Collection collection = ReflectionUtil.getCollectionInstance(collType);
+
+            List<Long> ids = getRelationsIds(pk, forClazz, genType);
+            for(Long id : ids){
+                Base child = readWithRelationsThrowExceptionCommon(id, genType);
+                collection.add(child);
+            }
+            try {
+                field.set(model, collection);
+            } catch (IllegalAccessException e) {
+                throw new ReadException(e);
+            }
+        }
+
+        return model;
+    }
+
+    private List<Long> getRelationsIds(Long parentId, Class parent, Class child){
+        List<Long> ids = new ArrayList<Long>();
+
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(parent, child),
+                SimpleStoreUtil.getRelationTableColumns(parent, child),
+                SimpleStoreUtil.getRelationTableColumn(parent) + "=?",
+                new String[]{Long.toString(parentId)},
+                null,
+                null,
+                null
+        );
+
+        while(cursor.moveToNext()) {
+            ids.add(cursor.getLong(cursor.getColumnIndex(SimpleStoreUtil.getRelationTableColumn(child))));
+        }
+        cursor.close();
+
+        return ids;
+    }
+
+    @Override
+    public boolean deleteWithRelations(Long aLong) {
+        try {
+            return deleteWithRelationsThrowException(aLong);
+        } catch (DeleteException e) {
+            LogUtil.toLog("Delete with relations exception", e);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteWithRelationsThrowException(Long aLong) throws DeleteException {
+        if(!deleteWithRelationsThrowExceptionCommon(aLong, clazz)){
+            throw new DeleteException("No models found for delete");
+        }
+        return true;
+    }
+
+    public boolean deleteWithRelationsThrowExceptionCommon(Long pk, Class forClazz){
+        LogUtil.toLog("DELETE FOR " + forClazz.getSimpleName() + " pk " + pk);
+        Map<Class, List<Long>> childs = new HashMap<Class, List<Long>>();
+
+        //find all childs one to one
+        for(Field field : ReflectionUtil.getFields(forClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+            field.setAccessible(true);
+            Class type = field.getType();
+
+            List<Long> ids = getRelationsIds(pk, forClazz, type);
+            if(ids.size() > 0){
+                childs.put(type, ids);
+            }
+        }
+
+        //find all childs one to many
+        for(Field field : ReflectionUtil.getFields(forClazz, Const.collections)) {
+            field.setAccessible(true);
+            Class genType = ReflectionUtil.getGenericType(field);
+
+            List<Long> ids = getRelationsIds(pk, forClazz, genType);
+            if(ids.size() > 0){
+                childs.put(genType, ids);
+            }
+        }
+
+        //delete parent
+        boolean result = deleteCommon(pk, forClazz);
+
+        for(Class key : childs.keySet()){
+            for(Long id : childs.get(key)){
+                deleteWithRelationsThrowExceptionCommon(id, key);
+            }
+        }
+
+        return result;
+    }
+
+
+
 }

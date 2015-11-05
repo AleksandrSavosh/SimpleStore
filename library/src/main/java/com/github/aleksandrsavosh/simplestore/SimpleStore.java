@@ -22,13 +22,13 @@ public interface SimpleStore<Model extends Base, PK> {
 
 
     Model createWithRelations(Model model);
-//    Model readWithRelations(PK pk);
+    Model readWithRelations(PK pk);
 //    Model updateWithRelations(Model model);
-//    boolean deleteWithRelations(PK pk);
+    boolean deleteWithRelations(PK pk);
 //
     Model createWithRelationsThrowException(Model model) throws CreateException;
-//    Model readWithRelationsThrowException(PK pk) throws ReadException;
+    Model readWithRelationsThrowException(PK pk) throws ReadException;
 //    Model updateWithRelationsThrowException(Model model) throws UpdateException;
-//    boolean deleteWithRelationsThrowException(PK pk) throws DeleteException;
+    boolean deleteWithRelationsThrowException(PK pk) throws DeleteException;
 
 }

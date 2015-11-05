@@ -3,7 +3,6 @@ package com.github.aleksandrsavosh.simplestore;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteHelper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -78,7 +77,7 @@ public class SimpleStoreUtil {
                 "CREATE TABLE " + getTableName(clazzes) + " ( " + lineSeparator +
                 "_id INTEGER primary key not null, " + lineSeparator);
         for(int i = 0; i < clazzes.length; i++){
-            sb.append(clazzes[i].getSimpleName().toLowerCase() + "_id INTEGER not null");
+            sb.append(getRelationTableColumn(clazzes[i]) + " INTEGER not null");
             if(i + 1 == clazzes.length){
                 sb.append(lineSeparator);
             } else {
@@ -87,6 +86,26 @@ public class SimpleStoreUtil {
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    /**
+     * метод генерирует массив колонок для таблицы связки
+     * @param clazzes классы на основаниии которых будет сгенерирован массив колонок
+     * @return массив колонок
+     */
+    public static String[] getRelationTableColumns(Class<? extends Base>... clazzes){
+        List<String> columns = new ArrayList<String>();
+        for(Class clazz : clazzes){
+            columns.add(getRelationTableColumn(clazz));
+        }
+        return columns.toArray(new String[columns.size()]);
+    }
+
+    /**
+     * метод генерирует имя колонки
+     */
+    public static String getRelationTableColumn(Class clazz){
+        return clazz.getSimpleName().toLowerCase() + "_id";
     }
 
     /**
@@ -233,6 +252,34 @@ public class SimpleStoreUtil {
             contentValues.put(base.getClass().getSimpleName() + "_id", base.getLocalId());
         }
         return contentValues;
+    }
+
+    /**
+     * метод получает все таблицы-связки которые есть а базе данных для этой модели
+     * @return лист строк
+     */
+    public static List<String> getAllRelationTableNames(SQLiteDatabase db, Class clazz){
+        String tableName = getTableName(clazz);
+
+        //get all table names
+        Cursor c = db.rawQuery(
+                "SELECT name FROM sqlite_master " +
+                        "WHERE type='table' " +
+                        "and name like '%" + tableName + "%' " +
+                        "and name <> '" + tableName + "'", null);
+
+        List<String> list = new ArrayList<String>();
+
+        //drop all tables
+        if (c.moveToFirst()) {
+            while ( !c.isAfterLast() ) {
+                list.add(c.getString(0));
+                c.moveToNext();
+            }
+        }
+        c.close();
+
+        return list;
     }
 
     /**

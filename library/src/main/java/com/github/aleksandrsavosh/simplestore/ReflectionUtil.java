@@ -2,8 +2,7 @@ package com.github.aleksandrsavosh.simplestore;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Util for some reflection handles
@@ -32,4 +31,11 @@ public class ReflectionUtil {
     }
 
 
+    public static Collection getCollectionInstance(Class collType) {
+        if(collType.equals(Collection.class) || collType.equals(List.class)){
+            return new ArrayList();
+        } else {
+            return new HashSet();
+        }
+    }
 }
