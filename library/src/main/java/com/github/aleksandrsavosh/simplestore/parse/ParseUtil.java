@@ -1,17 +1,16 @@
 package com.github.aleksandrsavosh.simplestore.parse;
 
 
-import android.util.Base64;
 import com.github.aleksandrsavosh.simplestore.Base;
 import com.github.aleksandrsavosh.simplestore.Const;
 import com.github.aleksandrsavosh.simplestore.ReflectionUtil;
 import com.parse.ParseException;
 import com.parse.ParseFile;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
 
 import java.lang.reflect.Field;
-import java.util.Date;
-import java.util.HashSet;
+import java.lang.reflect.InvocationTargetException;
 
 public class ParseUtil {
 
@@ -19,19 +18,19 @@ public class ParseUtil {
         return ParseObject.create(clazz.getSimpleName());
     }
 
-    public static void setModel2PO(Base base, ParseObject po) throws ParseException,
-            IllegalAccessException {
+    public static <Model extends Base> Model createModel(Class<Model> clazz) throws NoSuchMethodException, IllegalAccessException,
+            InvocationTargetException, InstantiationException {
+        return clazz.getConstructor().newInstance();
+    }
 
+    public static void setModel2PO(Base base, ParseObject po) throws ParseException, IllegalAccessException {
         Class clazz = base.getClass();
-
         for(Field field : ReflectionUtil.getFields(clazz, Const.fields)){
             field.setAccessible(true);
             String fieldName = field.getName();
-
             if (po.has(fieldName)) {
                 po.remove(fieldName);
             }
-
             Object value = field.get(base);
             if(value != null) {
                 po.put(fieldName, value);
@@ -51,6 +50,16 @@ public class ParseUtil {
         }
     }
 
+    public static <Model extends Base> void setPOData2Model(ParseObject po, Model model) throws ParseException, IllegalAccessException {
+        for(Field field : ReflectionUtil.getFields(model.getClass(), Const.dataFields)){
+            field.setAccessible(true);
+            ParseFile pf = po.getParseFile(field.getName());
+            if(pf != null && pf.isDataAvailable()){
+                field.set(model, pf.getData());
+            }
+        }
+    }
+
     public static void setPO2Model(ParseObject po, Base base) throws IllegalAccessException {
         Class clazz = base.getClass();
 
@@ -62,6 +71,10 @@ public class ParseUtil {
             field.setAccessible(true);
             field.set(base, po.get(field.getName()));
         }
+    }
+
+    public static ParseObject getPO(Class clazz, String id) throws ParseException {
+        return ParseQuery.getQuery(clazz.getSimpleName()).get(id);
     }
 
 }
