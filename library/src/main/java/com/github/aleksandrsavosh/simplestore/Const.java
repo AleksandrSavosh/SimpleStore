@@ -16,6 +16,10 @@ public abstract class Const {
         add(Set.class);
     }};
 
+    public static final Set<Class> dataFields = new HashSet<Class>(){{
+        add(byte[].class);
+    }};
+
     public static Set<Class<? extends Base>> modelClasses = new HashSet<Class<? extends Base>>();
 
 }

@@ -329,8 +329,28 @@ public class SimpleStoreUtil {
         return result;
     }
 
+    /**
+     * часть sql запроса для условия where
+     */
+    public static String getSelectionFilter(KeyValue... keyValues) {
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < keyValues.length; i++){
+            builder.append(keyValues[i].key);
+            builder.append("=?");
+            if(i + 1 != keyValues.length){
+                builder.append(" and ");
+            }
+        }
+        return builder.toString();
+    }
 
-
+    public static String[] getSelectionFilterArguments(KeyValue... keyValues) {
+        List<String> list = new ArrayList<String>();
+        for(int i = 0; i < keyValues.length; i++){
+            list.add(keyValues[i].value.toString());
+        }
+        return list.toArray(new String[list.size()]);
+    }
 
 
     static class A extends Base {

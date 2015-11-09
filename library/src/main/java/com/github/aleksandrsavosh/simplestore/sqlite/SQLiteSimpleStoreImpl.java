@@ -9,6 +9,7 @@ import com.github.aleksandrsavosh.simplestore.exception.ReadException;
 import com.github.aleksandrsavosh.simplestore.exception.UpdateException;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model, Long> {
@@ -354,5 +355,198 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
     }
 
 
+    @Override
+    public List<Model> readAll() {
+        try {
+            return readAllThrowException();
+        } catch (ReadException e) {
+            LogUtil.toLog("Read all exception", e);
+        }
+        return new ArrayList<Model>();
+    }
 
+    @Override
+    public List<Model> readAllThrowException() throws ReadException {
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz),
+                SimpleStoreUtil.getColumns(clazz),
+                null, null, null, null, null
+        );
+
+        List<Model> models = new ArrayList<Model>();
+
+        try {
+            while(cursor.moveToNext()) {
+                models.add((Model) SimpleStoreUtil.getModel(cursor, clazz));
+            }
+        } catch (Exception e) {
+            throw new ReadException(e);
+        } finally {
+            cursor.close();
+        }
+
+        return models;
+    }
+
+    @Override
+    public List<Model> readAllWithRelations() {
+        try {
+            return readAllWithRelationsThrowException();
+        } catch (ReadException e) {
+            LogUtil.toLog("Read all with relations exception", e);
+        }
+        return new ArrayList<Model>();
+    }
+
+    @Override
+    public List<Model> readAllWithRelationsThrowException() throws ReadException {
+        List<Model> models = new ArrayList<Model>();
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz),
+                new String[]{ "_id" },
+                null, null, null, null, null
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                models.add(readWithRelationsThrowException(cursor.getLong(1)));
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return models;
+    }
+
+    @Override
+    public List<Model> readBy(KeyValue... keyValues) {
+        try {
+            return readByThrowException(keyValues);
+        } catch (ReadException e) {
+            LogUtil.toLog("Read By exception", e);
+        }
+        return new ArrayList<Model>();
+    }
+
+    @Override
+    public List<Model> readByThrowException(KeyValue... keyValues) throws ReadException {
+        List<Model> models = new ArrayList<Model>();
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz),
+                new String[]{ "_id" },
+                SimpleStoreUtil.getSelectionFilter(keyValues),
+                SimpleStoreUtil.getSelectionFilterArguments(keyValues),
+                null, null, null
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                models.add(readThrowException(cursor.getLong(1)));
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return models;
+    }
+
+    @Override
+    public List<Model> readByWithRelations(KeyValue... keyValues) {
+        try {
+            return readByWithRelationsThrowException(keyValues);
+        } catch (ReadException e) {
+            LogUtil.toLog("Read By with relations exception", e);
+        }
+        return new ArrayList<Model>();
+    }
+
+    @Override
+    public List<Model> readByWithRelationsThrowException(KeyValue... keyValues) throws ReadException {
+        List<Model> models = new ArrayList<Model>();
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz),
+                new String[]{ "_id" },
+                SimpleStoreUtil.getSelectionFilter(keyValues),
+                SimpleStoreUtil.getSelectionFilterArguments(keyValues),
+                null, null, null
+        );
+
+        try {
+            while (cursor.moveToNext()) {
+                models.add(readWithRelationsThrowException(cursor.getLong(1)));
+            }
+        } finally {
+            cursor.close();
+        }
+
+        return models;
+    }
+
+    @Override
+    public List<Long> readParentIds(Class parentClazz, Long id) {
+        try {
+            return readParentIdsThrowException(parentClazz, id);
+        } catch (Exception e) {
+            LogUtil.toLog("Read parent ids exception", e);
+        }
+        return new ArrayList<Long>();
+    }
+
+    @Override
+    public List<Long> readParentIdsThrowException(Class parentClazz, Long id) {
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz, parentClazz),
+                new String[]{ SimpleStoreUtil.getRelationTableColumn(parentClazz) },
+                SimpleStoreUtil.getRelationTableColumn(clazz) + "=?",
+                new String[]{ "" + id },
+                null, null, null
+        );
+
+        List<Long> ids = new ArrayList<Long>();
+        try {
+            while (cursor.moveToNext()) {
+                ids.add(cursor.getLong(1));
+            }
+        } finally {
+            cursor.close();
+        }
+        return ids;
+    }
+
+    @Override
+    public List<Long> readChildrenIds(Class childClazz, Long id) {
+        try {
+            return readChildrenIdsThrowException(childClazz, id);
+        } catch (Exception e) {
+            LogUtil.toLog("Read children ids exception", e);
+        }
+        return new ArrayList<Long>();
+    }
+
+    @Override
+    public List<Long> readChildrenIdsThrowException(Class childClazz, Long id) {
+        SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz, childClazz),
+                new String[]{ SimpleStoreUtil.getRelationTableColumn(childClazz) },
+                SimpleStoreUtil.getRelationTableColumn(clazz) + "=?",
+                new String[]{ "" + id },
+                null, null, null
+        );
+
+        List<Long> ids = new ArrayList<Long>();
+        try {
+            while (cursor.moveToNext()) {
+                ids.add(cursor.getLong(1));
+            }
+        } finally {
+            cursor.close();
+        }
+        return ids;
+    }
 }
