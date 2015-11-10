@@ -22,7 +22,6 @@ public interface SimpleStore<Model extends Base, PK> {
     Model updateThrowException(Model model) throws UpdateException;
     boolean deleteThrowException(PK pk) throws DeleteException;
 
-
     Model createWithRelations(Model model);
     Model readWithRelations(PK pk);
 //    Model updateWithRelations(Model model);
@@ -30,7 +29,7 @@ public interface SimpleStore<Model extends Base, PK> {
 //
     Model createWithRelationsThrowException(Model model) throws CreateException;
     Model readWithRelationsThrowException(PK pk) throws ReadException;
-//    Model updateWithRelationsThrowException(Model model) throws UpdateException;
+    Model updateWithRelationsThrowException(Model model) throws UpdateException;
     boolean deleteWithRelationsThrowException(PK pk) throws DeleteException;
 
     List<Model> readAll();
@@ -43,9 +42,9 @@ public interface SimpleStore<Model extends Base, PK> {
     List<Model> readByWithRelations(KeyValue... keyValues);
     List<Model> readByWithRelationsThrowException(KeyValue... keyValues) throws ReadException;
 
-    List<PK> readParentIds(Class parentClazz, PK id);
-    List<PK> readParentIdsThrowException(Class parentClazz, PK id);
-    List<PK> readChildrenIds(Class childClazz, PK id);
-    List<PK> readChildrenIdsThrowException(Class childClazz, PK id);
+//    List<PK> readParentIds(Class parentClazz, PK id);
+//    List<PK> readParentIdsThrowException(Class parentClazz, PK id) throws ReadException;
+//    List<PK> readChildrenIds(Class childClazz, PK id);
+//    List<PK> readChildrenIdsThrowException(Class childClazz, PK id) throws ReadException;
 
 }

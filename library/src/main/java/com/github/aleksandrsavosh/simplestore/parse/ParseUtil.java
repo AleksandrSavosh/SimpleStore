@@ -3,6 +3,7 @@ package com.github.aleksandrsavosh.simplestore.parse;
 
 import com.github.aleksandrsavosh.simplestore.Base;
 import com.github.aleksandrsavosh.simplestore.Const;
+import com.github.aleksandrsavosh.simplestore.KeyValue;
 import com.github.aleksandrsavosh.simplestore.ReflectionUtil;
 import com.parse.ParseException;
 import com.parse.ParseFile;
@@ -11,6 +12,7 @@ import com.parse.ParseQuery;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 public class ParseUtil {
 
@@ -75,6 +77,18 @@ public class ParseUtil {
 
     public static ParseObject getPO(Class clazz, String id) throws ParseException {
         return ParseQuery.getQuery(clazz.getSimpleName()).get(id);
+    }
+
+    public static List<ParseObject> getPOs(Class clazz) throws ParseException {
+        return ParseQuery.getQuery(clazz.getSimpleName()).find();
+    }
+
+    public static List<ParseObject> getPOsBy(Class clazz, KeyValue... keyValues) throws ParseException {
+        ParseQuery<ParseObject> query = ParseQuery.getQuery(clazz.getSimpleName());
+        for(KeyValue keyValue : keyValues){
+            query.whereEqualTo(keyValue.key, keyValue.value);
+        }
+        return query.find();
     }
 
 }

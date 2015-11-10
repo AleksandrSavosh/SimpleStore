@@ -3,13 +3,9 @@ package com.github.aleksandrsavosh.simplestore.sqlite;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import com.github.aleksandrsavosh.simplestore.*;
-import com.github.aleksandrsavosh.simplestore.exception.CreateException;
-import com.github.aleksandrsavosh.simplestore.exception.DeleteException;
-import com.github.aleksandrsavosh.simplestore.exception.ReadException;
-import com.github.aleksandrsavosh.simplestore.exception.UpdateException;
+import com.github.aleksandrsavosh.simplestore.exception.*;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Model, Long> {
@@ -64,16 +60,16 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model readThrowException(Long pk) throws ReadException {
-        return (Model) readThrowExceptionCommon(pk, clazz);
+        return readThrowExceptionCommon(pk, clazz);
     }
 
-    public Base readThrowExceptionCommon(Long pk, Class<? extends Base> forClass) throws ReadException  {
+    public <T extends Base> T readThrowExceptionCommon(Long modelPk, Class<T> modelClazz) throws ReadException {
         SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
         Cursor cursor = database.query(
-                SimpleStoreUtil.getTableName(forClass),
-                SimpleStoreUtil.getColumns(forClass),
+                SimpleStoreUtil.getTableName(modelClazz),
+                SimpleStoreUtil.getColumns(modelClazz),
                 "_id=?",
-                new String[]{Long.toString(pk)},
+                new String[]{Long.toString(modelPk)},
                 null,
                 null,
                 null
@@ -81,11 +77,11 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
         if(!cursor.moveToNext()) {
             cursor.close();
-            throw new ReadException("Date not found");
+            throw new DataNotFoundException("Date not found");
         }
 
         try {
-            return SimpleStoreUtil.getModel(cursor, forClass);
+            return SimpleStoreUtil.getModel(cursor, modelClazz);
         } catch (Exception e){
             throw new ReadException("Create model exception");
         } finally {
@@ -105,6 +101,14 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model updateThrowException(Model model) throws UpdateException {
+        try {
+            return updateCommonThrowException(model);
+        } catch (Exception e){
+            throw new UpdateException(e);
+        }
+    }
+
+    public <T extends Base> T updateCommonThrowException(T model) throws UpdateException, DataNotFoundException {
         int row;
         try {
             SQLiteDatabase database = sqLiteHelper.getWritableDatabase();
@@ -119,11 +123,9 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         } catch (Exception e){
             throw new UpdateException("Update model exception");
         }
-
         if(row == 0){
-            throw new UpdateException("Not found model for update");
+            throw new DataNotFoundException("Not found model for update");
         }
-
         return model;
     }
 
@@ -226,19 +228,19 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
     @Override
     public Model readWithRelationsThrowException(Long pk) throws ReadException {
-        return (Model) readWithRelationsThrowExceptionCommon(pk, clazz);
+        return readWithRelationsThrowExceptionCommon(pk, clazz);
     }
 
-    public Base readWithRelationsThrowExceptionCommon(Long pk, Class<? extends Base> forClazz) throws ReadException {
+    public <T extends Base> T readWithRelationsThrowExceptionCommon(Long modelPk, Class<T> modelClazz) throws ReadException {
         //read parent
-        Base model = readThrowExceptionCommon(pk, forClazz);
+        T model = readThrowExceptionCommon(modelPk, modelClazz);
 
         //read one to one relations
-        for(Field field : ReflectionUtil.getFields(forClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+        for(Field field : ReflectionUtil.getFields(modelClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
             field.setAccessible(true);
             Class type = field.getType();
 
-            List<Long> ids = getRelationsIds(pk, forClazz, type);
+            List<Long> ids = getRelationsIds(modelPk, modelClazz, type);
             if(ids.size() > 1){
                 throw new ReadException("To much children for one model property");
             }
@@ -254,14 +256,14 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         }
 
         //read one to many relations
-        for(Field field : ReflectionUtil.getFields(forClazz, Const.collections)) {
+        for(Field field : ReflectionUtil.getFields(modelClazz, Const.collections)) {
             field.setAccessible(true);
             Class collType = field.getType();
             Class genType = ReflectionUtil.getGenericType(field);
 
             Collection collection = ReflectionUtil.getCollectionInstance(collType);
 
-            List<Long> ids = getRelationsIds(pk, forClazz, genType);
+            List<Long> ids = getRelationsIds(modelPk, modelClazz, genType);
             for(Long id : ids){
                 Base child = readWithRelationsThrowExceptionCommon(id, genType);
                 collection.add(child);
@@ -276,15 +278,15 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         return model;
     }
 
-    private List<Long> getRelationsIds(Long parentId, Class parent, Class child){
+    private <M extends Base, C extends Base> List<Long> getRelationsIds(Long modelPk, Class<M> modelClazz, Class<C> child){
         List<Long> ids = new ArrayList<Long>();
 
         SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
         Cursor cursor = database.query(
-                SimpleStoreUtil.getTableName(parent, child),
-                SimpleStoreUtil.getRelationTableColumns(parent, child),
-                SimpleStoreUtil.getRelationTableColumn(parent) + "=?",
-                new String[]{Long.toString(parentId)},
+                SimpleStoreUtil.getTableName(modelClazz, child),
+                SimpleStoreUtil.getRelationTableColumns(modelClazz, child),
+                SimpleStoreUtil.getRelationTableColumn(modelClazz) + "=?",
+                new String[]{Long.toString(modelPk)},
                 null,
                 null,
                 null
@@ -297,6 +299,75 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
 
         return ids;
     }
+
+    @Override
+    public Model updateWithRelationsThrowException(Model model) throws UpdateException {
+        return null;
+    }
+
+    public <M extends Base, C extends Base> M updateWithRelationsCommonThrowException(M modelActual, M modelExists, Class<M> modelClazz)
+            throws UpdateException, CreateException, ReadException {
+
+        if(modelActual == null && modelExists == null){
+            throw new UpdateException("nothing for update");
+        }
+
+        //create model, return model
+        if(modelActual != null && modelExists == null){
+            return createWithRelationsThrowExceptionCommon(modelActual);
+        }
+
+        //delete model, return null
+        if(modelActual == null && modelExists != null){
+            deleteWithRelationsThrowExceptionCommon(modelExists.getLocalId(), modelClazz);
+            return null;
+        }
+
+        //update model
+        M modelResult = updateCommonThrowException(modelActual);
+
+        //update one to one relations
+        for(Field field : ReflectionUtil.getFields(modelClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+            field.setAccessible(true);
+            Class<C> childClazz = (Class<C>) field.getType();
+            List<Long> existsIds = getRelationsIds(modelExists.getLocalId(), modelClazz, childClazz);
+            if(existsIds.size() > 1){
+                throw new ReadException("To much children for one model property");
+            }
+            if(existsIds.size() == 1){
+                try {
+                    C childActual = (C) field.get(modelActual);
+                    C childExists = readWithRelationsThrowExceptionCommon(existsIds.get(0), childClazz);
+                    C childResult = updateWithRelationsCommonThrowException(childActual, childExists, childClazz);
+                    if(childResult != null){
+                        field.set(modelResult, childResult);
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new UpdateException(e);
+                }
+            }
+        }
+
+
+        //update one to many relations
+        for(Field field : ReflectionUtil.getFields(modelClazz, Const.collections)) {
+            field.setAccessible(true);
+            Class collType = field.getType();
+            Class<C> childClazz = ReflectionUtil.getGenericType(field);
+            Collection resultCollection = ReflectionUtil.getCollectionInstance(collType);
+            List<Long> existsIds = getRelationsIds(modelExists.getLocalId(), modelClazz, childClazz);
+
+            List<C> childsForDelete = new ArrayList<C>();
+            List<C> childsForCreate = new ArrayList<C>();
+
+
+        }
+
+
+
+        return modelResult;
+    }
+
 
     @Override
     public boolean deleteWithRelations(Long aLong) {
@@ -486,7 +557,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         return models;
     }
 
-    @Override
+//    @Override
     public List<Long> readParentIds(Class parentClazz, Long id) {
         try {
             return readParentIdsThrowException(parentClazz, id);
@@ -496,7 +567,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         return new ArrayList<Long>();
     }
 
-    @Override
+//    @Override
     public List<Long> readParentIdsThrowException(Class parentClazz, Long id) {
         SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
         Cursor cursor = database.query(
@@ -518,7 +589,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         return ids;
     }
 
-    @Override
+//    @Override
     public List<Long> readChildrenIds(Class childClazz, Long id) {
         try {
             return readChildrenIdsThrowException(childClazz, id);
@@ -528,7 +599,7 @@ public class SQLiteSimpleStoreImpl<Model extends Base> implements SimpleStore<Mo
         return new ArrayList<Long>();
     }
 
-    @Override
+//    @Override
     public List<Long> readChildrenIdsThrowException(Class childClazz, Long id) {
         SQLiteDatabase database = sqLiteHelper.getReadableDatabase();
         Cursor cursor = database.query(
