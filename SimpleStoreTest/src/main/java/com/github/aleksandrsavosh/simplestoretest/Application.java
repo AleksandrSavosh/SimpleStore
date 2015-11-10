@@ -3,7 +3,7 @@ package com.github.aleksandrsavosh.simplestoretest;
 import com.github.aleksandrsavosh.simplestore.Base;
 import com.github.aleksandrsavosh.simplestore.LogUtil;
 import com.github.aleksandrsavosh.simplestore.SimpleStore;
-import com.github.aleksandrsavosh.simplestore.SimpleStoreFactory;
+import com.github.aleksandrsavosh.simplestore.SimpleStoreManager;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -85,24 +85,23 @@ public class Application extends android.app.Application {
     public void onCreate() {
         super.onCreate();
 
-        SimpleStoreFactory factory = SimpleStoreFactory.instance(this);
+        SimpleStoreManager manager = SimpleStoreManager.instance(this, new HashSet<Class<? extends Base>>(){{ add(AAA.class); add(BBB.class); add(CCC.class); }});
+        manager.useLog(true);
+        manager.initLocalStore(12);
 
-        LogUtil.setIsUseLog(true);
+        SimpleStore<BBB, Long> store = manager.getLocalStore(BBB.class);
 
-        factory.initLocalStore(12, new HashSet<Class<? extends Base>>(){{ add(AAA.class); add(BBB.class); add(CCC.class); }});
-//        SimpleStore<BBB, Long> store = factory.getLocalStore(BBB.class);
-//        BBB test = new BBB();
-//        test = store.createWithRelations(test);
-//        System.out.println("TEST: " + test);
-//        System.out.println("TEST2: " + store.readWithRelations(test.getLocalId()));
-////        store.deleteWithRelations(test.getLocalId());
+        BBB test = new BBB();
+        test = store.createWithRelations(test);
+        System.out.println("TEST: " + test);
+        System.out.println("TEST2: " + store.readWithRelations(test.getLocalId()));
+        store.deleteWithRelations(test.getLocalId());
 
-        factory.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
-        SimpleStore<CCC, String> cloudStore = factory.getCloudStore(CCC.class);
-
+//        factory.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
+//        SimpleStore<CCC, String> cloudStore = factory.getCloudStore(CCC.class);
 //        System.out.println("IDS: " + cloudStore.readParentIds(BBB.class, "KxtxapjBp4"));
 
 
-        factory.destroy();
+        manager.destroy();
     }
 }

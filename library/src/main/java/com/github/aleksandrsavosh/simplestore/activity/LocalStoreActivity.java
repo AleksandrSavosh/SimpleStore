@@ -8,7 +8,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import com.github.aleksandrsavosh.simplestore.R;
-import com.github.aleksandrsavosh.simplestore.SimpleStoreFactory;
+import com.github.aleksandrsavosh.simplestore.SimpleStoreManager;
 import com.github.aleksandrsavosh.simplestore.SimpleStoreUtil;
 import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteHelper;
 
@@ -25,7 +25,7 @@ public class LocalStoreActivity extends Activity {
 
         final WebView webView = (WebView) findViewById(R.id.local_store_web_view);
 
-        helper = SimpleStoreFactory.instance.getSqLiteHelper();
+        helper = SimpleStoreManager.instance.getSqLiteHelper();
 
         List<String> tableNames = SimpleStoreUtil.getTableNames(helper.getReadableDatabase());
 
