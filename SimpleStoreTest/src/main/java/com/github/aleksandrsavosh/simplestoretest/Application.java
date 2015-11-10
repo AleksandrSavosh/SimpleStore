@@ -90,19 +90,17 @@ public class Application extends android.app.Application {
         LogUtil.setIsUseLog(true);
 
         factory.initLocalStore(12, new HashSet<Class<? extends Base>>(){{ add(AAA.class); add(BBB.class); add(CCC.class); }});
-
         SimpleStore<BBB, Long> store = factory.getLocalStore(BBB.class);
-
         BBB test = new BBB();
-
         test = store.createWithRelations(test);
-
         System.out.println("TEST: " + test);
         System.out.println("TEST2: " + store.readWithRelations(test.getLocalId()));
+//        store.deleteWithRelations(test.getLocalId());
 
-
-        store.deleteWithRelations(test.getLocalId());
-
+        factory.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
+        SimpleStore<BBB, String> cloudStore = factory.getCloudStore(BBB.class);
+        test = cloudStore.createWithRelations(test);
+        System.out.println("TEST3: " + test);
 
         factory.destroy();
     }

@@ -1,0 +1,37 @@
+TEST3:
+BBB{
+    str='test2',
+    AAA=AAA{
+        ints=50,
+        str='null',
+        date=Mon Nov 09 22:11:00 EET 2015}
+        Base{
+        localId=2,
+        cloudId='3l5uwSByHS',
+        createdAt=Mon Nov 09 22:11:03 EET 2015,
+        updatedAt=Mon Nov 09 22:11:03 EET 2015},
+    testList=[
+        CCC{test='test333'}
+        Base{
+            localId=4,
+            cloudId='OHr3uG7LoD',
+            createdAt=Mon Nov 09 22:11:03 EET 2015,
+            updatedAt=Mon Nov 09 22:11:03 EET 2015},
+        CCC{test='test333'}
+        Base{
+            localId=5,
+            cloudId='KxtxapjBp4',
+            createdAt=Mon Nov 09 22:11:04 EET 2015,
+            updatedAt=Mon Nov 09 22:11:04 EET 2015},
+        CCC{test='test333'}
+        Base{
+            localId=6,
+            cloudId='kfAgpRFFZG',
+            createdAt=Mon Nov 09 22:11:05 EET 2015,
+            updatedAt=Mon Nov 09 22:11:05 EET 2015}
+    ]}
+Base{
+    localId=2,
+    cloudId='t5BvWOE4DX',
+    createdAt=Mon Nov 09 22:11:02 EET 2015,
+    updatedAt=Mon Nov 09 22:11:02 EET 2015}

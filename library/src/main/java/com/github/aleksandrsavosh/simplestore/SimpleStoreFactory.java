@@ -1,8 +1,11 @@
 package com.github.aleksandrsavosh.simplestore;
 
 import android.content.Context;
+import com.github.aleksandrsavosh.simplestore.parse.ModelPO;
+import com.github.aleksandrsavosh.simplestore.parse.ParseSimpleStoreImpl;
 import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteHelper;
 import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteSimpleStoreImpl;
+import com.parse.Parse;
 
 import java.util.Set;
 
@@ -36,5 +39,13 @@ public class SimpleStoreFactory {
 
     public SQLiteHelper getSqLiteHelper() {
         return sqLiteHelper;
+    }
+
+    public void initCloudStore(String applicationId, String clientKey){
+        Parse.initialize(context, applicationId, clientKey);
+    }
+
+    public <Model extends Base> SimpleStore<Model, String> getCloudStore(Class<Model> clazz) {
+        return new ParseSimpleStoreImpl<Model>(clazz);
     }
 }

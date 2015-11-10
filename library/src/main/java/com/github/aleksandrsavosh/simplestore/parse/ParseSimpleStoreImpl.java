@@ -9,6 +9,7 @@ import com.parse.ParseException;
 import com.parse.ParseObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -65,13 +66,13 @@ public class ParseSimpleStoreImpl<Model extends Base> implements SimpleStore<Mod
     @Override
     public Model createThrowException(Model model) throws CreateException {
         try {
-            return (Model) createThrowExceptionCommon(model);
+            return createThrowExceptionCommon(model);
         } catch (Exception e) {
             throw new CreateException(e.getMessage(), e);
         }
     }
 
-    public Base createThrowExceptionCommon(Base model) throws ParseException, IllegalAccessException {
+    public <T extends Base> T createThrowExceptionCommon(T model) throws ParseException, IllegalAccessException {
         Class clazz = model.getClass();
         ParseObject po = ParseUtil.createPO(clazz);
         ParseUtil.setModel2PO(model, po);
@@ -84,14 +85,19 @@ public class ParseSimpleStoreImpl<Model extends Base> implements SimpleStore<Mod
     @Override
     public Model readThrowException(String s) throws ReadException {
         try {
-            ParseObject po = ParseUtil.getPO(clazz, s);
-            Model model = ParseUtil.createModel(clazz);
-            ParseUtil.setPO2Model(po, model);
-            ParseUtil.setPOData2Model(po, model);
-            return model;
+            return readThrowExceptionCommon(s, clazz);
         } catch (Exception e){
             throw new ReadException(e);
         }
+    }
+
+    public <T extends Base> T readThrowExceptionCommon(String id, Class<T> forClass) throws ParseException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        ParseObject po = ParseUtil.getPO(forClass, id);
+        T model = ParseUtil.createModel(forClass);
+        ParseUtil.setPO2Model(po, model);
+        ParseUtil.setPOData2Model(po, model);
+        return model;
+
     }
 
     @Override
@@ -120,6 +126,11 @@ public class ParseSimpleStoreImpl<Model extends Base> implements SimpleStore<Mod
 
     @Override
     public Model createWithRelations(Model model) {
+        try {
+            return createWithRelationsThrowException(model);
+        } catch (CreateException e){
+            LogUtil.toLog("Create with relations error", e);
+        }
         return null;
     }
 
@@ -136,46 +147,99 @@ public class ParseSimpleStoreImpl<Model extends Base> implements SimpleStore<Mod
     @Override
     public Model createWithRelationsThrowException(Model model) throws CreateException {
         try {
-
-
-
-
-//            //мапа где инт глубина
-//            Map<Integer, List<ModelPONode>> map =
-//                    Util.getModelPoTreeRec(clazz, 1, model, null, true, isCloudStorage);
-//            Util.createRelations(map);
-//            Util.save(map, isCloudStorage);
-//            Util.setPO2Model(map, isCloudStorage);
-            return model;
+            return createWithRelationsThrowExceptionCommon(model);
         } catch(Exception e){
             throw new CreateException(e);
         }
     }
 
-    public Base createWithRelationsThrowExceptionOnlyModels(Base model) throws ParseException, IllegalAccessException {
-        model = createThrowExceptionCommon(model);
-        for(Field field : ReflectionUtil.getFields(model.getClass(), new HashSet<Class>(){{addAll(Const.modelClasses);}})){
-            field.setAccessible(true);
-            Base child = (Base) field.get(model);
-            if(child == null){ continue; }
-            field.set(model, createWithRelationsThrowExceptionOnlyModels(child));
-        }
-        for(Field field : ReflectionUtil.getFields(model.getClass(), Const.collections)){
-            field.setAccessible(true);
-            Collection<Base> children = (Collection<Base>) field.get(model);
-            if(children == null){ continue; }
+    private <T extends Base> T createWithRelationsThrowExceptionCommon(T model) throws CreateException {
+        try {
+            //create parent
+            model = createThrowExceptionCommon(model);
+
+            //create children
+            List<? extends Base> children = SimpleStoreUtil.getModelChildrenObjects(model);
             for(Base child : children){
-                child = createWithRelationsThrowExceptionOnlyModels(child);
+                child = createWithRelationsThrowExceptionCommon(child);
+
+                //create relations
+                if(!appendChildToParentCommon(model, child)){
+                    throw new CreateException("Not create relation");
+                }
             }
 
+            return model;
+        } catch (Exception e) {
+            throw new CreateException("Can not create model with relations", e);
         }
+    }
 
-        return model;
+    private <Parent extends Base, Child extends Base> boolean appendChildToParentCommon(Parent parent, Child child)
+            throws ParseException {
+        ParseObject parentPo = ParseUtil.getPO(parent.getClass(), parent.getCloudId());
+        ParseObject childPo = ParseUtil.getPO(child.getClass(), child.getCloudId());
+        childPo.put(parentPo.getClassName(), parentPo);
+        childPo.save();
+        return true;
     }
 
     @Override
     public Model readWithRelationsThrowException(String s) throws ReadException {
         return null;
+    }
+
+    public <T extends Base> T readWithRelationsThrowExceptionCommon(String pk, Class<T> forClazz)
+            throws ReadException, NoSuchMethodException, InstantiationException, IllegalAccessException, ParseException, InvocationTargetException {
+        //read parent
+        T model = readThrowExceptionCommon(pk, forClazz);
+
+        //read one to one relations
+        for(Field field : ReflectionUtil.getFields(forClazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+            field.setAccessible(true);
+            Class type = field.getType();
+
+            List<String> ids = getRelationsIds(pk, forClazz, type);
+            if(ids.size() > 1){
+                throw new ReadException("To much children for one model property");
+            }
+
+            if(ids.size() == 1){
+                try {
+                    Base child = readWithRelationsThrowExceptionCommon(ids.get(0), type);
+                    field.set(model, child);
+                } catch (IllegalAccessException e) {
+                    throw new ReadException(e);
+                }
+            }
+        }
+
+        //read one to many relations
+        for(Field field : ReflectionUtil.getFields(forClazz, Const.collections)) {
+            field.setAccessible(true);
+            Class collType = field.getType();
+            Class genType = ReflectionUtil.getGenericType(field);
+
+            Collection collection = ReflectionUtil.getCollectionInstance(collType);
+
+            List<Long> ids = getRelationsIds(pk, forClazz, genType);
+            for(Long id : ids){
+                Base child = readWithRelationsThrowExceptionCommon(id, genType);
+                collection.add(child);
+            }
+            try {
+                field.set(model, collection);
+            } catch (IllegalAccessException e) {
+                throw new ReadException(e);
+            }
+        }
+
+        return model;
+    }
+
+    public List<String> getRelationsIds(String pk, Class forClazz, Class type) throws ParseException {
+        ParseObject po = ParseUtil.getPO(forClazz, pk);
+        po.
     }
 
     @Override
