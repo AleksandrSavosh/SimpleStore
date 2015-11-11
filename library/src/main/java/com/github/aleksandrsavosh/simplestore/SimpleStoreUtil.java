@@ -374,7 +374,7 @@ public class SimpleStoreUtil {
     }
 
     public static void main(String[] args) throws IllegalAccessException {
-        Const.modelClasses = new HashSet<Class<? extends Base>>(){{
+        Const.modelClasses = new HashSet<Class>(){{
             add(A.class);
             add(B.class);
             add(C.class);

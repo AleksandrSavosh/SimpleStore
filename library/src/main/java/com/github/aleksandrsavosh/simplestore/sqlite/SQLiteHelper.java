@@ -37,7 +37,7 @@ public class SQLiteHelper extends SQLiteOpenHelper {
         //create table for relations between models
         final List<String> queriesOfCreateRelationTables = new ArrayList<String>();
         for(Class<? extends Base> clazz : Const.modelClasses){
-            for(Field field : ReflectionUtil.getFields(clazz, new HashSet<Class>(){{ addAll(Const.modelClasses); }})){
+            for(Field field : ReflectionUtil.getFields(clazz, Const.modelClasses)){
                 field.setAccessible(true);
                 Class<? extends Base> type = (Class<? extends Base>) field.getType();
                 queriesOfCreateRelationTables.add(SimpleStoreUtil.getCreateRelationTableQuery(clazz, type));
@@ -67,10 +67,8 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
         //get all table names
         Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
-
         //drop all tables
         if (c.moveToFirst()) {
             while ( !c.isAfterLast() ) {
@@ -78,13 +76,9 @@ public class SQLiteHelper extends SQLiteOpenHelper {
                 c.moveToNext();
             }
         }
-
         c.close();
-
         onCreate(db);
     }
-
-
 
     interface QueryExecutor {
         void exec(SQLiteDatabase db);
@@ -99,6 +93,4 @@ public class SQLiteHelper extends SQLiteOpenHelper {
             db.endTransaction();
         }
     }
-
-
 }

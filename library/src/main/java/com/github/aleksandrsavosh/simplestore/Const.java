@@ -20,6 +20,6 @@ public abstract class Const {
         add(byte[].class);
     }};
 
-    public static Set<Class<? extends Base>> modelClasses = new HashSet<Class<? extends Base>>();
+    public static Set<Class> modelClasses = new HashSet<Class>();
 
 }

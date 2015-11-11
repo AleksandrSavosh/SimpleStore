@@ -1,9 +1,7 @@
 package com.github.aleksandrsavosh.simplestoretest;
 
-import com.github.aleksandrsavosh.simplestore.Base;
-import com.github.aleksandrsavosh.simplestore.LogUtil;
-import com.github.aleksandrsavosh.simplestore.SimpleStore;
-import com.github.aleksandrsavosh.simplestore.SimpleStoreManager;
+import com.github.aleksandrsavosh.simplestore.*;
+import com.github.aleksandrsavosh.simplestore.exception.CreateException;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -85,21 +83,29 @@ public class Application extends android.app.Application {
     public void onCreate() {
         super.onCreate();
 
-        SimpleStoreManager manager = SimpleStoreManager.instance(this, new HashSet<Class<? extends Base>>(){{ add(AAA.class); add(BBB.class); add(CCC.class); }});
+        SimpleStoreManager manager = SimpleStoreManager.instance(this, new HashSet<Class>(){{
+            add(AAA.class);
+            add(BBB.class);
+            add(CCC.class);
+        }});
+
         manager.useLog(true);
-        manager.initLocalStore(12);
 
-        SimpleStore<BBB, Long> store = manager.getLocalStore(BBB.class);
+//        manager.initLocalStore(13);
+//        SimpleStore<Long> localStore = manager.getLocalStore();
+//
+//        BBB test = new BBB();
+//        test = localStore.createWithRelations(test);
 
-        BBB test = new BBB();
-        test = store.createWithRelations(test);
-        System.out.println("TEST: " + test);
-        System.out.println("TEST2: " + store.readWithRelations(test.getLocalId()));
-        store.deleteWithRelations(test.getLocalId());
+        manager.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
+        SimpleStore<String> cloudStore = manager.getCloudStore();
 
-//        factory.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
-//        SimpleStore<CCC, String> cloudStore = factory.getCloudStore(CCC.class);
-//        System.out.println("IDS: " + cloudStore.readParentIds(BBB.class, "KxtxapjBp4"));
+        cloudStore.readWithRelations("t5BvWOE4DX", BBB.class);
+
+//        BBB test2 = new BBB();
+//        test2 = cloudStore.createWithRelations(test2);
+
+
 
 
         manager.destroy();
