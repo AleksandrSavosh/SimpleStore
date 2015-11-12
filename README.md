@@ -35,16 +35,29 @@ public class MyModel extends Base {
 
 ## How to start:
 ```java
-class MyModel extends Base {}
 
-SimpleStoreFactory factory = SimpleStoreFactory.instance(<context>);
-factory.initLocalStore(1, new HashSet(){{ add(MyModel.class); }});
-SimpleStore<MyModel, Long> store = factory.getLocalStore(MyModel.class);
+//here we pass on context and set of all model classes
+SimpleStoreManager manager = SimpleStoreManager.instance(context, new HashSet<Class>(){{
+    add(AAA.class);
+    add(BBB.class);
+    add(CCC.class);
+}});
 
-MyModel myModel = store.create(new MyModel());
-MyModel myModel2 = store.read(myModel.getLocalId());
+//if you need you may use log info
+manager.useLog(true);
 
-factory.destroy();
+//here we pass on database version, if we will use local store
+manager.initLocalStore(13);
+
+//local store
+SimpleStore<Long> localStore = manager.getLocalStore();
+
+//here init cloud store, pass clientId and applicationId from parse.com
+manager.initCloudStore(applicationId, clientKey);
+
+//cloud store
+SimpleStore<String> cloudStore = manager.getCloudStore();
+
 ```
 
 ## How to add dependency?
