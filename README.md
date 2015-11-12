@@ -20,6 +20,16 @@ For files model can use byte array (byte[].class)
 import com.github.aleksandrsavosh.simplestore.Base;
 public class MyModel extends Base {
 
+    private Integer ints;
+    private String str;
+    private Date dat;
+    
+    private byte[] file;
+    
+    private MyOtherModel myOtherModel
+    
+    private Collection<MyOtherOtherModel> myOtherOtherModels;
+    
 }
 ```
 
