@@ -241,15 +241,39 @@ public class SimpleStoreUtil {
         return values;
     }
 
+//    /**
+//     * метод создает ContentValues для таблицы связки исходя переданых классов
+//     * @param classes обекты
+//     * @return ContentValues
+//     */
+//    public static ContentValues getContentValuesForRelationClasses(Base... classes) {
+//        ContentValues contentValues = new ContentValues();
+//        for(Base base : classes){
+//            contentValues.put(base.getClass().getSimpleName() + "_id", base.getLocalId());
+//        }
+//        return contentValues;
+//    }
+
     /**
-     * метод создает ContentValues для таблицы связки исходя переданых классов
-     * @param classes обекты
+     * метод создает ContentValues для таблицы связки исходя переданых данных
      * @return ContentValues
      */
-    public static ContentValues getContentValuesForRelationClasses(Base... classes) {
+    public static ContentValues getContentValuesForRelationClasses(Long id, Class clazz, Long subId, Class subClazz) {
         ContentValues contentValues = new ContentValues();
-        for(Base base : classes){
-            contentValues.put(base.getClass().getSimpleName() + "_id", base.getLocalId());
+        contentValues.put(getRelationTableColumn(clazz), id);
+        contentValues.put(getRelationTableColumn(subClazz), subId);
+        return contentValues;
+    }
+
+    /**
+     * метод создает ContentValues для таблицы связки исходя переданых данных
+     * @return ContentValues
+     */
+    public static ContentValues getContentValuesForRelationClasses(Long id, Class clazz, Collection<Long> subIds, Class subClazz) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(getRelationTableColumn(clazz), id);
+        for(Long subId : subIds) {
+            contentValues.put(getRelationTableColumn(subClazz), subId);
         }
         return contentValues;
     }

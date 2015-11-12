@@ -282,12 +282,18 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
     }
 
 
-//    @Override
+
+    @Override
     public <M extends Base, C extends Base> boolean createRelationThrowException(M model, C child) throws CreateException {
+        return createRelationThrowException(model.getLocalId(), model.getClass(), child.getLocalId(), child.getClass());
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationThrowException(Long pk, Class<M> clazz, Long subPk, Class<C> subClazz) throws CreateException {
         long rowId = database.insert(
-                SimpleStoreUtil.getTableName(model.getClass(), child.getClass()),
+                SimpleStoreUtil.getTableName(clazz, subClazz),
                 null,
-                SimpleStoreUtil.getContentValuesForRelationClasses(model, child)
+                SimpleStoreUtil.getContentValuesForRelationClasses(pk, clazz, subPk, subClazz)
         );
         if(rowId == -1){
             throw new CreateException("create relation error");
@@ -295,7 +301,41 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         return true;
     }
 
-//    @Override
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationsThrowException(M model, Collection<C> subModels) throws CreateException {
+        Collection<Long> subPks = new ArrayList<>();
+        Class subClazz = null;
+        for(C subModel : subModels){
+            subPks.add(subModel.getLocalId());
+            subClazz = subModel.getClass();
+        }
+        if(subClazz == null){
+            throw new CreateException("doesn't define subClass, may be subModels is empty");
+        }
+        return createRelationsThrowException(model.getLocalId(), model.getClass(), subPks, subClazz);
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationsThrowException(Long pk, Class<M> clazz, Collection<Long> subPks, Class<C> subClazz) throws CreateException {
+        long rowId = database.insert(
+                SimpleStoreUtil.getTableName(clazz, subClazz),
+                null,
+                SimpleStoreUtil.getContentValuesForRelationClasses(pk, clazz, subPks, subClazz)
+        );
+        if(rowId == -1){
+            throw new CreateException("create relation error");
+        }
+        return true;
+    }
+
+
+    @Override
+    public <M extends Base, C extends Base> C readRelationThrowException(M model, Class<C> subClazz) throws ReadException {
+        Long subId = readRelationThrowException(model.getLocalId(), model.getClass(), subClazz);
+        return readThrowException(subId, subClazz);
+    }
+
+    @Override
     public <M extends Base, C extends Base> Long readRelationThrowException(Long pk, Class<M> modelClazz, Class<C> subClazz)
             throws ReadException {
         List<Long> ids = readRelationsThrowException(pk, modelClazz, subClazz);
@@ -305,7 +345,17 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         return ids.get(0);
     }
 
-//    @Override
+    @Override
+    public <M extends Base, C extends Base> List<C> readRelationsThrowException(M model, Class<C> subClazz) throws ReadException {
+        List<Long> subPks = readRelationsThrowException(model.getLocalId(), model.getClass(), subClazz);
+        List<C> list = (List<C>) ReflectionUtil.getCollectionInstance(ArrayList.class);
+        for(Long subPk : subPks){
+            list.add(readThrowException(subPk, subClazz));
+        }
+        return list;
+    }
+
+    @Override
     public <M extends Base, C extends Base> List<Long> readRelationsThrowException(Long pk, Class<M> modelClazz, Class<C> subClazz) throws ReadException {
         List<Long> ids = new ArrayList<Long>();
         Cursor cursor = database.query(
@@ -327,9 +377,24 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         return ids;
     }
 
-//    @Override
-    public <M extends Base, C extends Base> C readRelationThrowException(M model, Class<C> subClazz) throws ReadException {
-        Long subId = readRelationThrowException(model.getLocalId(), model.getClass(), subClazz);
-        return readThrowException(subId, subClazz);
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(M model, C subModel) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(Long aLong, Class<M> clazz, Long subPk, Class<C> subClazz) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(M model, Collection<C> subModels) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(Long aLong, Class<M> clazz, Collection<Long> subPks, Class<C> subClazz) throws DeleteException {
+        return false;
     }
 }

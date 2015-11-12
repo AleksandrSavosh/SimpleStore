@@ -89,13 +89,13 @@ public class Application extends android.app.Application {
             add(CCC.class);
         }});
 
-        manager.useLog(true);
+//        manager.useLog(true);
 
 //        manager.initLocalStore(13);
-//        SimpleStore<Long> localStore = manager.getLocalStore();
+        SimpleStore<Long> localStore = manager.getLocalStore();
 //
-//        BBB test = new BBB();
-//        test = localStore.createWithRelations(test);
+        BBB test = new BBB();
+        test = localStore.createWithRelations(test);
 
         manager.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
         SimpleStore<String> cloudStore = manager.getCloudStore();

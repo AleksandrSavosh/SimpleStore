@@ -238,6 +238,7 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
         return deleteThrowException(pk, clazz);
     }
 
+    @Override
     public <M extends Base, C extends Base> boolean createRelationThrowException(M model, C child) throws CreateException {
         try {
             ParseObject parentPo = ParseUtil.getPO(model.getClass(), model.getCloudId());
@@ -250,6 +251,27 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
         }
     }
 
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationThrowException(String s, Class<M> clazz, String subPk, Class<C> subClazz) throws CreateException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationsThrowException(M model, Collection<C> subModels) throws CreateException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationsThrowException(String s, Class<M> clazz, Collection<String> subPks, Class<C> subClazz) throws CreateException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> C readRelationThrowException(M model, Class<C> subClazz) throws ReadException {
+        return null;
+    }
+
+    @Override
     public <M extends Base, C extends Base> String readRelationThrowException(String pk, Class<M> modelClazz, Class<C> subClazz) throws ReadException {
         List<String> ids = readRelationsThrowException(pk, modelClazz, subClazz);
         if(ids.size() > 1){
@@ -258,6 +280,12 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
         return ids.get(0);
     }
 
+    @Override
+    public <M extends Base, C extends Base> List<C> readRelationsThrowException(M model, Class<C> subClazz) throws ReadException {
+        return null;
+    }
+
+    @Override
     public <M extends Base, C extends Base> List<String> readRelationsThrowException(String pk, Class<M> modelClazz, Class<C> subClazz) throws ReadException {
         List<String> ids = new ArrayList<String>();
         try {
@@ -280,4 +308,23 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
         return ids;
     }
 
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(M model, C subModel) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(String s, Class<M> clazz, String subPk, Class<C> subClazz) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(M model, Collection<C> subModels) throws DeleteException {
+        return false;
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(String s, Class<M> clazz, Collection<String> subPks, Class<C> subClazz) throws DeleteException {
+        return false;
+    }
 }
