@@ -13,7 +13,7 @@ SimpleStore is a library that provides handy way to save model objects to differ
  * Model can use next types: Integer.class, String.class, java.util.Date.class 
  * Model also can use other models.
  * And model can use collections of model. (Collection.class, List.class, Set.class)
- * For files model can use byte array (byte[].class)
+ * Model can use byte array for files (byte[].class)
 
 
 ```java
