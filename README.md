@@ -1,6 +1,6 @@
 # SimpleStore
 
-##Overview
+## Overview
 
 SimpleStore is a library that provides handy way to save model objects to different data stores.
 
@@ -9,11 +9,11 @@ SimpleStore is a library that provides handy way to save model objects to differ
  - Cloud store (parse.com)
 
 ## Requirements for model:
- - Model must extends from "Base model". 
- - Model can use next types: Integer.class, String.class, java.util.Date.class 
- - Model also can use other models.
- - And model can use collections of model. (Collection.class, List.class, Set.class)
- - For files model can use byte array (byte[].class)
+ * Model must extends from "Base model". 
+ * Model can use next types: Integer.class, String.class, java.util.Date.class 
+ * Model also can use other models.
+ * And model can use collections of model. (Collection.class, List.class, Set.class)
+ * For files model can use byte array (byte[].class)
 
 
 ```java
