@@ -132,7 +132,7 @@ public class Application extends android.app.Application {
         BBB test = new BBB();
         test = localStore.createWithRelations(test);
         System.out.println("TEST: " + test);
-        System.out.println("TEST: " + localStore.readWithRelations(test.getLocalId(), BBB.class));
+        System.out.println("TEST: " + localStore.readAllWithRelations(BBB.class));
 
 
 
@@ -152,6 +152,6 @@ public class Application extends android.app.Application {
 
 
 
-        manager.destroy();
+//        manager.destroy();
     }
 }

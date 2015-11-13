@@ -295,7 +295,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         List<Model> models = new ArrayList<Model>();
         try {
             while (cursor.moveToNext()) {
-                models.add(readWithRelationsThrowException(cursor.getLong(1), clazz));
+                models.add(readWithRelationsThrowException(cursor.getLong(0), clazz));
             }
         } finally {
             cursor.close();
