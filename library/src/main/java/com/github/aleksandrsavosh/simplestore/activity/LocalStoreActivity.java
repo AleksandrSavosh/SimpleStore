@@ -25,6 +25,10 @@ public class LocalStoreActivity extends Activity {
 
         final WebView webView = (WebView) findViewById(R.id.local_store_web_view);
 
+        if(helper == null){
+            return;
+        }
+
         helper = SimpleStoreManager.instance.getSqLiteHelper();
 
         List<String> tableNames = SimpleStoreUtil.getTableNames(helper.getReadableDatabase());

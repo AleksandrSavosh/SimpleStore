@@ -1,5 +1,6 @@
 package com.github.aleksandrsavosh.simplestore.sqlite;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import com.github.aleksandrsavosh.simplestore.*;
@@ -19,11 +20,24 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
     @Override
     public <Model extends Base> Model createThrowException(Model model) throws CreateException {
         try {
+            ContentValues createContentValues = SimpleStoreUtil.getContentValuesForCreate(model);
+
+            //create files
+            for(Field field : ReflectionUtil.getFields(model.getClass(), Const.dataFields)){
+                field.setAccessible(true);
+                byte[] bytes = (byte[]) field.get(model);
+                if(bytes != null && bytes.length > 0){
+                    String fileName = SimpleStoreUtil.createFile(bytes, SimpleStoreUtil.getFileName(model.getClass(), field));
+                    createContentValues.put(field.getName(), fileName);
+                }
+            }
+
             Long localId = database.insert(
                     SimpleStoreUtil.getTableName(model.getClass()),
                     null,
-                    SimpleStoreUtil.getContentValuesForCreate(model)
+                    createContentValues
             );
+
             model.setLocalId(localId);
             return model;
         } catch(Exception e){
@@ -49,7 +63,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         try {
             return SimpleStoreUtil.getModel(cursor, clazz);
         } catch (Exception e){
-            throw new ReadException("Create model exception");
+            throw new ReadException("Create model exception", e);
         } finally {
             cursor.close();
         }
@@ -99,9 +113,42 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
     public <Model extends Base> Model updateThrowException(Model model) throws UpdateException {
         int row;
         try {
+            ContentValues contentValuesForUpdate = SimpleStoreUtil.getContentValuesForUpdate(model);
+
+            Cursor cursor = database.query(
+                    SimpleStoreUtil.getTableName(model.getClass()),
+                    SimpleStoreUtil.getDataColumns(model.getClass()),
+                    "_id=?",
+                    new String[]{Long.toString(model.getLocalId())},
+                    null, null, null
+            );
+
+            while(cursor.moveToNext()) {
+                for(Field field : ReflectionUtil.getFields(model.getClass(), Const.dataFields)) {
+                    field.setAccessible(true);
+                    String oldFileName = cursor.getString(cursor.getColumnIndex(field.getName()));
+                    byte[] file = (byte[]) field.get(model);
+                    if(oldFileName != null && oldFileName.length() > 0 && file != null && file.length > 0) {//update file
+                        SimpleStoreUtil.deleteFile(oldFileName);
+                        String newFileName = SimpleStoreUtil.getFileName(model.getClass(), field);
+                        SimpleStoreUtil.createFile(file, newFileName);
+                        contentValuesForUpdate.put(field.getName(), newFileName);
+                    } else if(oldFileName != null && oldFileName.length() > 0 && (file == null || file.length == 0)){//delete file
+                        SimpleStoreUtil.deleteFile(oldFileName);
+                        contentValuesForUpdate.putNull(field.getName());
+                    } else if((oldFileName == null || oldFileName.length() == 0) && file != null && file.length > 0) {//create file
+                        String newFileName = SimpleStoreUtil.getFileName(model.getClass(), field);
+                        SimpleStoreUtil.createFile(file, newFileName);
+                        contentValuesForUpdate.put(field.getName(), newFileName);
+                    }
+                }
+            }
+
+            cursor.close();
+
             row = database.update(
                     SimpleStoreUtil.getTableName(model.getClass()),
-                    SimpleStoreUtil.getContentValuesForUpdate(model),
+                    contentValuesForUpdate,
                     "_id=?",
                     new String[]{Long.toString(model.getLocalId())}
             );
@@ -116,6 +163,26 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
 
     @Override
     public <Model extends Base> boolean deleteThrowException(Long pk, Class<Model> clazz) throws DeleteException {
+
+        //get file names from database
+        Cursor cursor = database.query(
+                SimpleStoreUtil.getTableName(clazz),
+                SimpleStoreUtil.getDataColumns(clazz),
+                "_id=?",
+                new String[]{Long.toString(pk)},
+                null, null, null
+        );
+        List<String> fileNames = new ArrayList<String>();
+        while(cursor.moveToNext()) {
+            for (Field field : ReflectionUtil.getFields(clazz, Const.dataFields)) {
+                field.setAccessible(true);
+                String fileName = cursor.getString(cursor.getColumnIndex(field.getName()));
+                if(fileName != null && fileName.length() > 0) {
+                    fileNames.add(fileName);
+                }
+            }
+        }
+
         //delete from object table
         int result = database.delete(
                 SimpleStoreUtil.getTableName(clazz),
@@ -128,6 +195,11 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         for(String table : allRelationTableNames){
             database.delete(table, columnName + "=?", new String[]{Long.toString(pk)});
         }
+        //delete files
+        for(String fileName : fileNames){
+            SimpleStoreUtil.deleteFile(fileName);
+        }
+
         return result != 0;
     }
 
@@ -261,9 +333,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         //delete children one to many
         for(Field field : ReflectionUtil.getFields(clazz, Const.collections)) {
             field.setAccessible(true);
-            Class collType = field.getType();
             Class childClazz = ReflectionUtil.getGenericType(field);
-            Collection collection = ReflectionUtil.getCollectionInstance(collType);
             List<Long> ids = null;
             try {
                  ids = readRelationsThrowException(pk, clazz, childClazz);
@@ -303,7 +373,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
 
     @Override
     public <M extends Base, C extends Base> boolean createRelationsThrowException(M model, Collection<C> subModels) throws CreateException {
-        Collection<Long> subPks = new ArrayList<>();
+        Collection<Long> subPks = new ArrayList<Long>();
         Class subClazz = null;
         for(C subModel : subModels){
             subPks.add(subModel.getLocalId());
@@ -380,21 +450,66 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
 
     @Override
     public <M extends Base, C extends Base> boolean deleteRelationThrowException(M model, C subModel) throws DeleteException {
-        return false;
+        return deleteRelationThrowException(model.getLocalId(), model.getClass(), subModel.getLocalId(), subModel.getClass());
     }
 
     @Override
-    public <M extends Base, C extends Base> boolean deleteRelationThrowException(Long aLong, Class<M> clazz, Long subPk, Class<C> subClazz) throws DeleteException {
-        return false;
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(Long pk, Class<M> clazz, Long subPk, Class<C> subClazz) throws DeleteException {
+        int count = database.delete(
+                SimpleStoreUtil.getTableName(clazz, subClazz),
+                SimpleStoreUtil.getRelationTableColumn(clazz) + "=? and " + SimpleStoreUtil.getRelationTableColumn(subClazz) + "=?",
+                new String[]{ Long.toString(pk), Long.toString(subPk)  }
+        );
+        if(count != 1){
+            throw new DeleteException("delete count not equal 1");
+        }
+        return true;
     }
 
     @Override
     public <M extends Base, C extends Base> boolean deleteRelationsThrowException(M model, Collection<C> subModels) throws DeleteException {
-        return false;
+        Class subClazz = null;
+        List<Long> subPks = new ArrayList<Long>();
+        for (C subModel : subModels){
+            subPks.add(subModel.getLocalId());
+            subClazz = subModel.getClass();
+        }
+        if(subClazz == null){
+            throw new DeleteException("doesn't define subClass, may be subModels is empty");
+        }
+        return deleteRelationsThrowException(model.getLocalId(), model.getClass(), subPks, subClazz);
     }
 
     @Override
-    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(Long aLong, Class<M> clazz, Collection<Long> subPks, Class<C> subClazz) throws DeleteException {
-        return false;
+    public <M extends Base, C extends Base> boolean deleteRelationsThrowException(Long pk, Class<M> clazz, Collection<Long> subPks, Class<C> subClazz) throws DeleteException {
+        List<String> allPks = new ArrayList<String>();
+        allPks.add(Long.toString(pk));
+
+        StringBuilder whereClause = new StringBuilder();
+        whereClause.append(SimpleStoreUtil.getRelationTableColumn(clazz));
+        whereClause.append(" =? ");
+        whereClause.append(" and ");
+        whereClause.append(SimpleStoreUtil.getRelationTableColumn(subClazz));
+        whereClause.append(" in ( ");
+        Iterator<Long> it = subPks.iterator();
+        while(it.hasNext()){
+            allPks.add(Long.toString(it.next()));
+            whereClause.append("?");
+            if(it.hasNext()){
+                whereClause.append(",");
+            }
+        }
+        whereClause.append(" ) ");
+
+        int count = database.delete(
+                SimpleStoreUtil.getTableName(clazz, subClazz),
+                whereClause.toString(),
+                allPks.toArray(new String[allPks.size()])
+        );
+
+        if(count == 0){
+            throw new DeleteException("delete count not equal 0");
+        }
+        return true;
     }
 }

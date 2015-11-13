@@ -28,7 +28,9 @@ public class LogProxy implements InvocationHandler {
 
         try {
             Object result = method.invoke(simpleStore, args);
-            LogUtil.toLog("RESULT: " + result.toString());
+            if(result != null) {
+                LogUtil.toLog("RESULT: " + result.toString());
+            }
             return result;
         } catch (InvocationTargetException e){
             throw e.getTargetException();

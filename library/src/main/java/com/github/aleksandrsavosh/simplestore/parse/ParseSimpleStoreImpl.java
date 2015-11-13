@@ -240,9 +240,14 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
 
     @Override
     public <M extends Base, C extends Base> boolean createRelationThrowException(M model, C child) throws CreateException {
+        return createRelationThrowException(model.getCloudId(), model.getClass(), child.getCloudId(), child.getClass());
+    }
+
+    @Override
+    public <M extends Base, C extends Base> boolean createRelationThrowException(String pk, Class<M> clazz, String subPk, Class<C> subClazz) throws CreateException {
         try {
-            ParseObject parentPo = ParseUtil.getPO(model.getClass(), model.getCloudId());
-            ParseObject childPo = ParseUtil.getPO(child.getClass(), child.getCloudId());
+            ParseObject parentPo = ParseUtil.getPO(clazz, pk);
+            ParseObject childPo = ParseUtil.getPO(subClazz, subPk);
             childPo.put(parentPo.getClassName(), parentPo);
             childPo.save();
             return true;
@@ -252,23 +257,38 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
     }
 
     @Override
-    public <M extends Base, C extends Base> boolean createRelationThrowException(String s, Class<M> clazz, String subPk, Class<C> subClazz) throws CreateException {
-        return false;
-    }
-
-    @Override
     public <M extends Base, C extends Base> boolean createRelationsThrowException(M model, Collection<C> subModels) throws CreateException {
-        return false;
+        Collection<String> subPks = new ArrayList<String>();
+        Class subClazz = null;
+        for(C subModel : subModels){
+            subPks.add(subModel.getCloudId());
+            subClazz = subModel.getClass();
+        }
+        if(subClazz == null){
+            throw new CreateException("doesn't define subClass, may be subModels is empty");
+        }
+        return createRelationsThrowException(model.getCloudId(), model.getClass(), subPks, subClazz);
     }
 
     @Override
-    public <M extends Base, C extends Base> boolean createRelationsThrowException(String s, Class<M> clazz, Collection<String> subPks, Class<C> subClazz) throws CreateException {
-        return false;
+    public <M extends Base, C extends Base> boolean createRelationsThrowException(String pk, Class<M> clazz, Collection<String> subPks, Class<C> subClazz) throws CreateException {
+        try {
+            ParseObject parentPo = ParseUtil.getPO(clazz, pk);
+            for(String subPk : subPks) {
+                ParseObject childPo = ParseUtil.getPO(subClazz, subPk);
+                childPo.put(parentPo.getClassName(), parentPo);
+                childPo.save();
+            }
+            return true;
+        } catch (Exception e){
+            throw new CreateException(e);
+        }
     }
 
     @Override
     public <M extends Base, C extends Base> C readRelationThrowException(M model, Class<C> subClazz) throws ReadException {
-        return null;
+        String subPk = readRelationThrowException(model.getCloudId(), model.getClass(), subClazz);
+        return readThrowException(subPk, subClazz);
     }
 
     @Override
@@ -292,8 +312,8 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
             ParseObject modelPo = ParseUtil.getPO(modelClazz, pk);
             ParseQuery<ParseObject> query = ParseQuery.getQuery(subClazz.getSimpleName());
             query.whereEqualTo(modelPo.getClassName(), modelPo);
-            List<ParseObject> list = query.find();
-            for (ParseObject po : list) {
+            List<ParseObject> pos = query.find();
+            for (ParseObject po : pos) {
                 ids.add(po.getObjectId());
             }
         } catch (Exception e){
@@ -310,21 +330,46 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
 
     @Override
     public <M extends Base, C extends Base> boolean deleteRelationThrowException(M model, C subModel) throws DeleteException {
-        return false;
+        return deleteRelationThrowException(model.getCloudId(), model.getClass(), subModel.getCloudId(), subModel.getClass());
     }
 
     @Override
-    public <M extends Base, C extends Base> boolean deleteRelationThrowException(String s, Class<M> clazz, String subPk, Class<C> subClazz) throws DeleteException {
-        return false;
+    public <M extends Base, C extends Base> boolean deleteRelationThrowException(String pk, Class<M> clazz, String subPk, Class<C> subClazz) throws DeleteException {
+        try {
+            ParseObject childPo = ParseUtil.getPO(subClazz, subPk);
+            childPo.remove(clazz.getSimpleName());
+            childPo.save();
+            return true;
+        } catch (Exception e){
+            throw new DeleteException(e);
+        }
     }
 
     @Override
     public <M extends Base, C extends Base> boolean deleteRelationsThrowException(M model, Collection<C> subModels) throws DeleteException {
-        return false;
+        Collection<String> subPks = new ArrayList<String>();
+        Class subClazz = null;
+        for(C subModel : subModels){
+            subPks.add(subModel.getCloudId());
+            subClazz = subModel.getClass();
+        }
+        if(subClazz == null){
+            throw new DeleteException("doesn't define subClass, may be subModels is empty");
+        }
+        return deleteRelationsThrowException(model.getCloudId(), model.getClass(), subPks, subClazz);
     }
 
     @Override
     public <M extends Base, C extends Base> boolean deleteRelationsThrowException(String s, Class<M> clazz, Collection<String> subPks, Class<C> subClazz) throws DeleteException {
-        return false;
+        try {
+            for(String subPk : subPks) {
+                ParseObject childPo = ParseUtil.getPO(subClazz, subPk);
+                childPo.remove(clazz.getSimpleName());
+                childPo.save();
+            }
+            return true;
+        } catch (Exception e){
+            throw new DeleteException(e);
+        }
     }
 }

@@ -198,7 +198,7 @@ public abstract class AbstractSimpleStore<Pk> implements SimpleStore<Pk> {
         } catch (ReadException e) {
             LogUtil.toLog("read relations error", e);
         }
-        return new ArrayList<>();
+        return new ArrayList<C>();
     }
 
     @Override
@@ -208,7 +208,7 @@ public abstract class AbstractSimpleStore<Pk> implements SimpleStore<Pk> {
         } catch (ReadException e) {
             LogUtil.toLog("read relations error", e);
         }
-        return new ArrayList<>();
+        return new ArrayList<Pk>();
     }
 
     @Override

@@ -14,7 +14,7 @@ import java.util.Set;
 public class SimpleStoreManager {
 
     public static SimpleStoreManager instance;
-    private Context context;
+    public Context context;
     private SQLiteHelper sqLiteHelper;
 
     private SimpleStoreManager(Context context) {

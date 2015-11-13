@@ -9,4 +9,8 @@ public class ReadException extends Exception {
     public ReadException(Exception e) {
         super(e);
     }
+
+    public ReadException(String s, Exception e) {
+        super(s, e);
+    }
 }

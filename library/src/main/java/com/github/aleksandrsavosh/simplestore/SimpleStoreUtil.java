@@ -1,9 +1,15 @@
 package com.github.aleksandrsavosh.simplestore;
 
+import android.app.Application;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import com.github.aleksandrsavosh.simplestore.exception.CreateException;
+import com.github.aleksandrsavosh.simplestore.exception.DataNotFoundException;
+import com.github.aleksandrsavosh.simplestore.exception.ReadException;
 
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -39,15 +45,19 @@ public class SimpleStoreUtil {
      */
     public static String getCreateTableQuery(Class<? extends Base> clazz) {
         final String lineSeparator = System.getProperty("line.separator");
+
+        Set<Field> fields = ReflectionUtil.getFields(clazz, Const.fields);
+        fields.addAll(ReflectionUtil.getFields(clazz, Const.dataFields));
+        Iterator<Field> it = fields.iterator();
+
         StringBuilder sb = new StringBuilder(lineSeparator +
                 "CREATE TABLE " + getTableName(clazz) + " ( " + lineSeparator +
                 "_id INTEGER primary key not null, " + lineSeparator +
                 "cloudId TEXT, " + lineSeparator +
                 "createdAt INTEGER, " + lineSeparator +
-                "updatedAt INTEGER, " + lineSeparator
+                "updatedAt INTEGER" + (it.hasNext()?", ":" ") + lineSeparator
         );
-        Set<Field> fields = ReflectionUtil.getFields(clazz, Const.fields);
-        Iterator<Field> it = fields.iterator();
+
         while(it.hasNext()){
             Field field = it.next();
             String name = field.getName();
@@ -55,6 +65,8 @@ public class SimpleStoreUtil {
             if(field.getType().equals(Integer.class) || field.getType().equals(Date.class)){
                 type = "INTEGER";
             } else if(field.getType().equals(String.class)) {
+                type = "TEXT";
+            } else if(field.getType().equals(byte[].class)) {
                 type = "TEXT";
             } else {
                 throw new RuntimeException("Not supported type");
@@ -152,14 +164,29 @@ public class SimpleStoreUtil {
         for(Field field : ReflectionUtil.getFields(clazz, Const.fields)){
             result.add(field.getName());
         }
+        for(Field field : ReflectionUtil.getFields(clazz, Const.dataFields)){
+            result.add(field.getName());
+        }
         return result.toArray(new String[result.size()]);
+    }
+
+    /**
+     * get columns where exists data file names
+     */
+    public static String[] getDataColumns(Class clazz) {
+        List<String> list = new ArrayList<String>();
+        for(Field field : ReflectionUtil.getFields(clazz, Const.dataFields)){
+            list.add(field.getName());
+        }
+
+        return list.toArray(new String[list.size()]);
     }
 
     /**
      * метод создает модель на основании класса модели и данных в курсоре
      * @return объект модели
      */
-    public static <Model extends Base> Model getModel(Cursor cursor, Class<? extends Base> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public static <Model extends Base> Model getModel(Cursor cursor, Class<? extends Base> clazz) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ReadException {
         Model model = (Model) clazz.getConstructor().newInstance();
         model.setLocalId(cursor.getLong(cursor.getColumnIndex("_id")));
         model.setCloudId(cursor.getString(cursor.getColumnIndex("cloudId")));
@@ -177,6 +204,13 @@ public class SimpleStoreUtil {
             if(type.equals(Date.class)){
                 Date date = new java.sql.Date(cursor.getLong(cursor.getColumnIndex(field.getName())));
                 field.set(model, date);
+            }
+        }
+        for(Field field : ReflectionUtil.getFields(clazz, Const.dataFields)){
+            field.setAccessible(true);
+            String fileName = cursor.getString(cursor.getColumnIndex(field.getName()));
+            if(fileName != null && fileName.length() > 0) {
+                field.set(model, readFile(fileName));
             }
         }
         return model;
@@ -374,6 +408,69 @@ public class SimpleStoreUtil {
             list.add(keyValues[i].value.toString());
         }
         return list.toArray(new String[list.size()]);
+    }
+
+    public static void closeNoThrow(Closeable... closeables){
+        for(Closeable c : closeables){
+            try {
+                if(c != null) {
+                    c.close();
+                }
+            } catch (IOException e) {
+                LogUtil.toLog("Close resource exception", e);
+            }
+        }
+    }
+
+    public static String createFile(byte[] bytes, String fileName) throws CreateException {
+        Context context = SimpleStoreManager.instance.context;
+
+        FileOutputStream outputStream = null;
+        try {
+            outputStream = context.openFileOutput(fileName, Context.MODE_PRIVATE);
+            outputStream.write(bytes);
+        } catch (Exception e) {
+            throw new CreateException(e);
+        } finally {
+            closeNoThrow(outputStream);
+        }
+        return fileName;
+    }
+
+    private static byte[] readFile(String fileName) throws ReadException {
+        Context context = SimpleStoreManager.instance.context;
+        File file = new File(context.getFilesDir(), fileName);
+        if(!file.exists()){
+            throw new DataNotFoundException("File not found");
+        }
+        byte[] result = new byte[(int) file.length()];
+        FileInputStream inputStream = null;
+        DataInputStream dataInputStream = null;
+        try {
+            inputStream = context.openFileInput(fileName);
+            dataInputStream = new DataInputStream(inputStream);
+            dataInputStream.readFully(result);
+        } catch (Exception e) {
+            throw new ReadException(e);
+        } finally {
+            closeNoThrow(inputStream, dataInputStream);
+        }
+        return result;
+    }
+
+    /**
+     * generate file name
+     */
+    public static String getFileName(Class clazz, Field field) {
+        return clazz.getSimpleName() + "_" + field.getName() + "_" + System.nanoTime();
+    }
+
+    public static void deleteFile(String fileName) {
+        Context context = SimpleStoreManager.instance.context;
+        File file = new File(context.getFilesDir(), fileName);
+        if(file.exists()){
+            file.delete();
+        }
     }
 
 
