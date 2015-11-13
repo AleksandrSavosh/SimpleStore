@@ -251,13 +251,14 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
 
             Collection collection = ReflectionUtil.getCollectionInstance(collType);
 
-            List<Long> ids = readRelationsThrowException(model.getLocalId(), clazz, childClazz);
-            for(Long id : ids){
-                Base child = readWithRelationsThrowException(id, childClazz);
-                collection.add(child);
-            }
             try {
+                List<Long> ids = readRelationsThrowException(model.getLocalId(), clazz, childClazz);
+                for(Long id : ids){
+                    Base child = readWithRelationsThrowException(id, childClazz);
+                    collection.add(child);
+                }
                 field.set(model, collection);
+            } catch (DataNotFoundException unused) {
             } catch (IllegalAccessException e) {
                 throw new ReadException(e);
             }
