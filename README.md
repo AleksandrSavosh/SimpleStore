@@ -77,6 +77,6 @@ repositories {
 then add a library dependency
 ```groovy
 dependencies {
-	compile 'com.github.AleksandrSavosh:SimpleStore:v1.0.0-alpha'
+	compile 'com.github.AleksandrSavosh:SimpleStore:v1.1.0-alpha'
 }
 ```
