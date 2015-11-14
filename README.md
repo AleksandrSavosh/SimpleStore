@@ -10,7 +10,7 @@ SimpleStore is a library that provides handy way to save model objects to differ
 
 ## Requirements for model:
  * Model must extends from "Base model". 
- * Model can use next types: Integer.class, String.class, java.util.Date.class 
+ * Model can use next types: Integer.class, Long.class, String.class, java.util.Date.class
  * Model also can use other models.
  * And model can use collections of model. (Collection.class, List.class, Set.class)
  * Model can use byte array for files (byte[].class)
@@ -21,6 +21,7 @@ import com.github.aleksandrsavosh.simplestore.Base;
 public class MyModel extends Base {
 
     private Integer ints;
+    private Long lon;
     private String str;
     private Date dat;
     

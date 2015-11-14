@@ -62,7 +62,8 @@ public class SimpleStoreUtil {
             Field field = it.next();
             String name = field.getName();
             String type;
-            if(field.getType().equals(Integer.class) || field.getType().equals(Date.class)){
+            if(field.getType().equals(Integer.class) || field.getType().equals(Date.class) ||
+                    field.getType().equals(Long.class)){
                 type = "INTEGER";
             } else if(field.getType().equals(String.class)) {
                 type = "TEXT";
@@ -198,6 +199,9 @@ public class SimpleStoreUtil {
             if(type.equals(Integer.class)){
                 field.set(model, cursor.getInt(cursor.getColumnIndex(field.getName())));
             }
+            if(type.equals(Long.class)){
+                field.set(model, cursor.getLong(cursor.getColumnIndex(field.getName())));
+            }
             if(type.equals(String.class)){
                 field.set(model, cursor.getString(cursor.getColumnIndex(field.getName())));
             }
@@ -267,6 +271,9 @@ public class SimpleStoreUtil {
             }
             if(data instanceof Integer){
                 values.put(name, (Integer) data);
+            }
+            if(data instanceof Long){
+                values.put(name, (Long) data);
             }
             if(data instanceof Date){
                 values.put(name, ((Date) data).getTime());

@@ -7,6 +7,7 @@ public abstract class Const {
     public static final Set<Class> fields = new HashSet<Class>();
     static {
         fields.add(Integer.class);
+        fields.add(Long.class);
         fields.add(String.class);
         fields.add(Date.class);
     }
