@@ -87,7 +87,7 @@ public class SimpleStoreUtil {
     public static String getCreateRelationTableQuery(Class<? extends Base>... clazzes) {
         final String lineSeparator = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder(lineSeparator +
-                "CREATE TABLE " + getTableName(clazzes) + " ( " + lineSeparator +
+                "CREATE TABLE IF NOT EXISTS" + getTableName(clazzes) + " ( " + lineSeparator +
                 "_id INTEGER primary key not null, " + lineSeparator);
         for(int i = 0; i < clazzes.length; i++){
             sb.append(getRelationTableColumn(clazzes[i]) + " INTEGER not null");
