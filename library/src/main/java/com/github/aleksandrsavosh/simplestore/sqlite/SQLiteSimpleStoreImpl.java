@@ -7,6 +7,7 @@ import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.*;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
@@ -73,7 +74,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
     public <Model extends Base> List<Model> readByThrowException(Class<Model> clazz, KeyValue... keyValues) throws ReadException {
         Cursor cursor = database.query(
                 SimpleStoreUtil.getTableName(clazz),
-                new String[]{ "_id" },
+                SimpleStoreUtil.getColumns(clazz),
                 SimpleStoreUtil.getSelectionFilter(keyValues),
                 SimpleStoreUtil.getSelectionFilterArguments(keyValues),
                 null, null, null
@@ -81,8 +82,10 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         List<Model> models = new ArrayList<Model>();
         try {
             while (cursor.moveToNext()) {
-                models.add(readThrowException(cursor.getLong(1), clazz));
+                models.add((Model) SimpleStoreUtil.getModel(cursor, clazz));
             }
+        } catch (Exception e) {
+            throw new ReadException("Create model exception", e);
         } finally {
             cursor.close();
         }
