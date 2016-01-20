@@ -9,7 +9,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import com.github.aleksandrsavosh.simplestore.R;
 import com.github.aleksandrsavosh.simplestore.SimpleStoreManager;
-import com.github.aleksandrsavosh.simplestore.SimpleStoreUtil;
+import com.github.aleksandrsavosh.simplestore.sqlite.SimpleStoreUtil;
 import com.github.aleksandrsavosh.simplestore.sqlite.SQLiteHelper;
 
 import java.util.List;

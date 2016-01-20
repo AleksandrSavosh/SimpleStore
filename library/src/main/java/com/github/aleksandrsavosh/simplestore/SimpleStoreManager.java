@@ -38,6 +38,7 @@ public class SimpleStoreManager {
         sqLiteHelper = null;
     }
 
+    @SuppressWarnings("unchecked")
     public SimpleStore<Long> getLocalStore(){
         SimpleStore<Long> simpleStore = new SQLiteSimpleStoreImpl();
         simpleStore = (SimpleStore<Long>) Proxy.newProxyInstance(
@@ -58,6 +59,7 @@ public class SimpleStoreManager {
         Parse.initialize(context, applicationId, clientKey);
     }
 
+    @SuppressWarnings("unchecked")
     public SimpleStore<String> getCloudStore() {
         SimpleStore<String> simpleStore = new ParseSimpleStoreImpl();
         return (SimpleStore<String>) Proxy.newProxyInstance(

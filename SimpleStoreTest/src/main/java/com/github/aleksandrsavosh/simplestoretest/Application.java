@@ -9,6 +9,7 @@ public class Application extends android.app.Application {
 
     public static class CCC extends Base {
         public String test = "test333";
+        public String test2 = "test2";
 
         @Override
         public String toString() {
@@ -126,11 +127,11 @@ public class Application extends android.app.Application {
 
         manager.useLog(true);
 
-        manager.initLocalStore(16);
+        manager.initLocalStore(19);
         SimpleStore<Long> localStore = manager.getLocalStore();
 
         BBB test = new BBB();
-        test = localStore.createWithRelations(test);
+//        test = localStore.createWithRelations(test);
         System.out.println("TEST: " + test);
         System.out.println("TEST: " + localStore.readAllWithRelations(BBB.class));
 

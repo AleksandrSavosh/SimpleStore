@@ -11,6 +11,12 @@ public class LogUtil {
         LogUtil.isUseLog = isUseLog;
     }
 
+    public static void toLog(String message, boolean showOnNewRow){
+        if(isUseLog){
+            Log.i(TAG, ( showOnNewRow ? ":" + System.getProperty("line.separator") : "" ) + message);
+        }
+    }
+
     public static void toLog(String message){
         if(isUseLog){
             Log.i(TAG, message);

@@ -23,24 +23,12 @@ public class SQLiteHelper extends SQLiteOpenHelper {
             queries.add(SimpleStoreUtil.getCreateTableQuery(clazz));
         }
 
-        //create tables for model
-        execInTransaction(db, new QueryExecutor() {
-            @Override
-            public void exec(SQLiteDatabase db) {
-                for (String query : queries) {
-                    LogUtil.toLog(query);
-                    db.execSQL(query);
-                }
-            }
-        });
-
         //create table for relations between models
-        final List<String> queriesOfCreateRelationTables = new ArrayList<String>();
         for(Class<? extends Base> clazz : Const.modelClasses){
             for(Field field : ReflectionUtil.getFields(clazz, Const.modelClasses)){
                 field.setAccessible(true);
                 Class<? extends Base> type = (Class<? extends Base>) field.getType();
-                queriesOfCreateRelationTables.add(SimpleStoreUtil.getCreateRelationTableQuery(clazz, type));
+                queries.add(SimpleStoreUtil.getCreateRelationTableQuery(clazz, type));
             }
 
             for(Field field : ReflectionUtil.getFields(clazz, new HashSet<Class>(){{
@@ -50,15 +38,15 @@ public class SQLiteHelper extends SQLiteOpenHelper {
             }})){
                 field.setAccessible(true);
                 Class<? extends Base> type = ReflectionUtil.getGenericType(field);
-                queriesOfCreateRelationTables.add(SimpleStoreUtil.getCreateRelationTableQuery(clazz, type));
+                queries.add(SimpleStoreUtil.getCreateRelationTableQuery(clazz, type));
             }
         }
 
         execInTransaction(db, new QueryExecutor() {
             @Override
             public void exec(SQLiteDatabase db) {
-                for (String query : queriesOfCreateRelationTables) {
-                    LogUtil.toLog(query);
+                for (String query : queries) {
+                    LogUtil.toLog(query, true);
                     db.execSQL(query);
                 }
             }
@@ -66,19 +54,101 @@ public class SQLiteHelper extends SQLiteOpenHelper {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         //get all table names
-        Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
-        //drop all tables
-        if (c.moveToFirst()) {
-            while ( !c.isAfterLast() ) {
-                db.execSQL("DROP TABLE IF EXISTS " + c.getString(0));
-                c.moveToNext();
+        List<String> tableNames = SimpleStoreUtil.getAllTableNames(db);
+
+        //mark all tables deprecated
+        LogUtil.toLog("--- mark all tables deprecated ---");
+        for(String tableName : tableNames){
+            String query = "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_deprecated";
+            LogUtil.toLog(query);
+            db.execSQL(query);
+        }
+        LogUtil.toLog("------------------------------");
+
+        //create new tables
+        onCreate(db);
+
+        //spill data from deprecated tables to new tables
+        LogUtil.toLog("--- spill data from deprecated tables to new tables ---");
+        final List<String> queries = new ArrayList<String>();
+        for(String tableName : tableNames){
+            if(isExistsTable(db, tableName)) {
+                List<String> depCols = getColumns(db, tableName + "_deprecated");
+                List<String> newCols = getColumns(db, tableName);
+
+                depCols.retainAll(newCols);// common columns
+
+                if(!depCols.isEmpty()) {
+                    queries.add(createSpillQuery(tableName, depCols));
+                }
             }
         }
-        c.close();
-        onCreate(db);
+
+        execInTransaction(db, new QueryExecutor() {
+            @Override
+            public void exec(SQLiteDatabase db) {
+                for (String query : queries) {
+                    LogUtil.toLog(query, true);
+                    db.execSQL(query);
+                }
+            }
+        });
+        LogUtil.toLog("------------------------------");
+
+
+        //drop deprecated tables
+        LogUtil.toLog("--- drop deprecated tables ---");
+        for(String tableName : tableNames){
+            String query = "DROP TABLE IF EXISTS " + tableName + "_deprecated";
+            LogUtil.toLog(query);
+            db.execSQL(query);
+        }
+        LogUtil.toLog("------------------------------");
+
     }
+
+    public String createSpillQuery(String tableName, List<String> cols){
+        final String lineSeparator = System.getProperty("line.separator");
+
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < cols.size(); i++){
+            sb.append(cols.get(i));
+
+            if(i + 1 != cols.size()){
+                sb.append(",");
+            }
+        }
+
+        return " " + lineSeparator +
+                "INSERT INTO " + tableName + " ( " + sb.toString() + " ) " + lineSeparator +
+                "SELECT " + sb.toString() + " FROM " + tableName + "_deprecated " + lineSeparator;
+    }
+
+    public List<String> getColumns(SQLiteDatabase db, String tableName){
+        List<String> cols = new ArrayList<String>();
+        Cursor ti = db.rawQuery("PRAGMA table_info(" + tableName + ")", null);
+        if ( ti.moveToFirst() ) {
+            do {
+                cols.add(ti.getString(1));
+            } while (ti.moveToNext());
+        }
+        return cols;
+    }
+
+    public boolean isExistsTable(SQLiteDatabase db, String tableName){
+        Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", new String[]{tableName});
+        try{
+            return c.moveToFirst();
+        } finally {
+            c.close();
+        }
+    }
+
+
 
     interface QueryExecutor {
         void exec(SQLiteDatabase db);

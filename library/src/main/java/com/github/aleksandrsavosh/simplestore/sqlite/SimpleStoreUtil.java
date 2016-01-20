@@ -1,10 +1,11 @@
-package com.github.aleksandrsavosh.simplestore;
+package com.github.aleksandrsavosh.simplestore.sqlite;
 
 import android.app.Application;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.CreateException;
 import com.github.aleksandrsavosh.simplestore.exception.DataNotFoundException;
 import com.github.aleksandrsavosh.simplestore.exception.ReadException;
@@ -371,7 +372,7 @@ public class SimpleStoreUtil {
 
     /**
      * Get table data
-     * @return list of lists where list.get(0) its column names
+     * @return list of lists where list.get(0) is column names
      */
     public static List<List<String>> getTableData(SQLiteDatabase db, String table){
         Cursor c = db.rawQuery("select * from " + table, null);
@@ -480,6 +481,27 @@ public class SimpleStoreUtil {
         }
     }
 
+
+    public static List<String> getAllTableNames(SQLiteDatabase db){
+        Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
+        List<String> tableNames = new ArrayList<String>();
+        if (c.moveToFirst()) {
+            while ( !c.isAfterLast() ) {
+                tableNames.add(c.getString(0));
+                c.moveToNext();
+            }
+        }
+        c.close();
+        return tableNames;
+    }
+
+    public static String getAlterTableQuery(SQLiteDatabase db, Class<? extends Base> clazz) {
+
+
+
+
+        return null;
+    }
 
     static class A extends Base {
 

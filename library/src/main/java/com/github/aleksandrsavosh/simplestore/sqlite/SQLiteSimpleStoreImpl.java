@@ -7,7 +7,6 @@ import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.*;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {

@@ -2,6 +2,7 @@ package com.github.aleksandrsavosh.simplestore.parse;
 
 import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.*;
+import com.github.aleksandrsavosh.simplestore.sqlite.SimpleStoreUtil;
 import com.parse.ParseException;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
