@@ -11,6 +11,7 @@ import java.util.List;
 public interface SimpleStore<Pk> {
 
     <Model extends Base> Model create(Model model);
+    <Model extends Base> boolean createFast(List<Model> model, Class<Model> modelClass);
     <Model extends Base> Model read(Pk pk, Class<Model> clazz);
     <Model extends Base> List<Model> readBy(Class<Model> clazz, KeyValue... keyValues);
     <Model extends Base> List<Model> readAll(Class<Model> clazz);

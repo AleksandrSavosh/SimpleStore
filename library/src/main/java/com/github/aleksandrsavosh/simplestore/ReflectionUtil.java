@@ -9,7 +9,18 @@ import java.util.*;
  */
 public class ReflectionUtil {
 
+    private static Map<Class, Map<Set<Class>, Set<Field>>> cache = new HashMap<Class, Map<Set<Class>, Set<Field>>>();
+
     public static Set<Field> getFields(final Class clazz, Set<Class> fieldTypes){
+        if(cache.containsKey(clazz)){
+            if(cache.get(clazz).containsKey(fieldTypes)){
+                return cache.get(clazz).get(fieldTypes);
+            }
+        } else {
+            cache.put(clazz, new HashMap<Set<Class>, Set<Field>>());
+        }
+
+
         Set<Field> result = new HashSet<Field>();
         for(Field field : clazz.getFields()){
             if(fieldTypes.contains(field.getType())){
@@ -21,6 +32,9 @@ public class ReflectionUtil {
                 result.add(field);
             }
         }
+
+        cache.get(clazz).put(fieldTypes, result);
+
         return result;
     }
 

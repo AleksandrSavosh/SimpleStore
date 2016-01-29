@@ -3,6 +3,8 @@ package com.github.aleksandrsavosh.simplestore.sqlite;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import android.util.Log;
 import com.github.aleksandrsavosh.simplestore.*;
 import com.github.aleksandrsavosh.simplestore.exception.*;
 
@@ -15,6 +17,110 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
 
     public void setDatabase(SQLiteDatabase database) {
         this.database = database;
+    }
+
+    @Override
+    public <Model extends Base> boolean createFast(List<Model> models, Class<Model> modelClass) {
+        if(models == null || models.isEmpty()){
+            return false;
+        }
+
+        try {
+            String tableName = SimpleStoreUtil.getTableName(modelClass);
+            Set<Field> fields = ReflectionUtil.getFields(modelClass, Const.fields);
+
+            int batchCount = 200;
+            int countFullInserts = (models.size() / batchCount);
+            int countRestRows = models.size() % batchCount;
+
+            if (countFullInserts > 0) {
+                String query = getBatchInsertQuery(batchCount, fields, tableName);
+//                LogUtil.toLog(query, true);
+                SQLiteStatement statement = database.compileStatement(query);
+
+                for (int i = 0; i < countFullInserts; i++) {
+                    int index = 1;
+                    for (int j = 0; j < batchCount; j++) {
+                        statement.bindLong(index++, new Date().getTime());
+                        statement.bindLong(index++, new Date().getTime());
+                        Model model = models.get(i * batchCount + j);
+                        for (Field field : fields) {
+                            if (field.getType().equals(Integer.class) || field.getType().equals(Long.class)) {
+                                statement.bindLong(index++, field.getLong(model));
+                            } else if (field.getType().equals(Date.class)) {
+                                statement.bindLong(index++, ((Date) field.get(model)).getTime());
+                            } else if (field.getType().equals(String.class)) {
+                                statement.bindString(index++, (String) field.get(model));
+                            }
+                        }
+                    }
+                    statement.execute();
+                    LogUtil.toLog("INSERTED: " + (i * batchCount));
+                }
+                statement.close();
+            }
+
+            if (countRestRows > 0) {
+                String query = getBatchInsertQuery(countRestRows, fields, tableName);
+                LogUtil.toLog(query, true);
+                SQLiteStatement statement = database.compileStatement(query);
+
+                int index = 1;
+                for (int j = 0; j < countRestRows; j++) {
+                    statement.bindLong(index++, new Date().getTime());
+                    statement.bindLong(index++, new Date().getTime());
+                    Model model = models.get(countFullInserts * batchCount + j);
+                    for (Field field : fields) {
+                        if (field.getType().equals(Integer.class) || field.getType().equals(Long.class)) {
+                            statement.bindLong(index++, field.getLong(model));
+                        } else if (field.getType().equals(Date.class)) {
+                            statement.bindLong(index++, ((Date) field.get(model)).getTime());
+                        } else if (field.getType().equals(String.class)) {
+                            statement.bindString(index++, (String) field.get(model));
+                        }
+                    }
+                }
+                statement.execute();
+                LogUtil.toLog("INSERTED: " + (countFullInserts * batchCount + countRestRows));
+                statement.close();
+            }
+
+            return true;
+        } catch(Exception e){
+            LogUtil.toLog("Fast insert exception", e);
+        }
+
+        return false;
+    }
+
+    private String getBatchInsertQuery(int batchCount, Set<Field> fields, String tableName){
+        final String lineSeparator = System.getProperty("line.separator");
+        Iterator<Field> iterator = fields.iterator();
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append(lineSeparator)
+                .append("INSERT INTO ").append(tableName).append(" (createdAt, updatedAt");
+
+        while (iterator.hasNext()) {
+            queryBuilder.append(", ").append(iterator.next().getName());
+        }
+
+        queryBuilder.append(")").append(lineSeparator);
+
+        for (int i = 0; i < batchCount; i++) {
+            queryBuilder.append("SELECT ?, ?, ");
+            for (int j = 0; j < fields.size(); j++) {
+                queryBuilder.append("?");
+                if (j + 1 != fields.size()) {
+                    queryBuilder.append(",");
+                }
+                queryBuilder.append(" ").append(lineSeparator);
+            }
+            if (i + 1 != batchCount) {
+                queryBuilder.append("UNION ALL ").append(lineSeparator);
+            }
+        }
+
+        return queryBuilder.toString();
     }
 
     @Override
@@ -102,6 +208,9 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
         try {
             while(cursor.moveToNext()) {
                 models.add((Model) SimpleStoreUtil.getModel(cursor, clazz));
+                if(0 == models.size() % 1000){
+                    LogUtil.toLog("READ: " + models.size());
+                }
             }
         } catch (Exception e) {
             throw new ReadException(e);

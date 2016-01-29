@@ -8,8 +8,8 @@ import java.util.*;
 public class Application extends android.app.Application {
 
     public static class CCC extends Base {
-        public String test = "test333";
-        public String test2 = "test2";
+        public String test = "test333выфывафваыыв";
+        public String test2 = "testфывафывфывафыва2";
 
         @Override
         public String toString() {
@@ -127,14 +127,20 @@ public class Application extends android.app.Application {
 
         manager.useLog(true);
 
-        manager.initLocalStore(19);
+        manager.initLocalStore(26);
+        manager.isNeedSaveData(false);
         SimpleStore<Long> localStore = manager.getLocalStore();
 
-        BBB test = new BBB();
-//        test = localStore.createWithRelations(test);
-        System.out.println("TEST: " + test);
-        System.out.println("TEST: " + localStore.readAllWithRelations(BBB.class));
 
+        List<CCC> cccs = new ArrayList<CCC>();
+        for(int i = 0; i < 65111; i++){
+            cccs.add(new CCC());
+        }
+//
+        localStore.createFast(cccs, CCC.class);
+
+        cccs = localStore.readAll(CCC.class);
+        System.out.println("FINISH: " + cccs.size());
 
 
 //        manager.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");

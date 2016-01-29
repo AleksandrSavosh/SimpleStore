@@ -71,4 +71,9 @@ public class SimpleStoreManager {
     public void useLog(boolean b) {
         LogUtil.setIsUseLog(b);
     }
+
+    public void isNeedSaveData(boolean b){
+        SQLiteHelper.isNeedSaveData = b;
+    }
+
 }

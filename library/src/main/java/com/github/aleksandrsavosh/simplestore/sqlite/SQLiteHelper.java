@@ -53,6 +53,7 @@ public class SQLiteHelper extends SQLiteOpenHelper {
         });
     }
 
+    public static boolean isNeedSaveData = false;
     @Override
     @SuppressWarnings("unchecked")
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -61,7 +62,7 @@ public class SQLiteHelper extends SQLiteOpenHelper {
 
         //mark all tables deprecated
         LogUtil.toLog("--- mark all tables deprecated ---");
-        for(String tableName : tableNames){
+        for (String tableName : tableNames) {
             String query = "ALTER TABLE " + tableName + " RENAME TO " + tableName + "_deprecated";
             LogUtil.toLog(query);
             db.execSQL(query);
@@ -71,43 +72,44 @@ public class SQLiteHelper extends SQLiteOpenHelper {
         //create new tables
         onCreate(db);
 
-        //spill data from deprecated tables to new tables
-        LogUtil.toLog("--- spill data from deprecated tables to new tables ---");
-        final List<String> queries = new ArrayList<String>();
-        for(String tableName : tableNames){
-            if(isExistsTable(db, tableName)) {
-                List<String> depCols = getColumns(db, tableName + "_deprecated");
-                List<String> newCols = getColumns(db, tableName);
+        if(isNeedSaveData) {
+            //spill data from deprecated tables to new tables
+            LogUtil.toLog("--- spill data from deprecated tables to new tables ---");
+            final List<String> queries = new ArrayList<String>();
+            for (String tableName : tableNames) {
+                if (isExistsTable(db, tableName)) {
+                    List<String> depCols = getColumns(db, tableName + "_deprecated");
+                    List<String> newCols = getColumns(db, tableName);
 
-                depCols.retainAll(newCols);// common columns
+                    depCols.retainAll(newCols);// common columns
 
-                if(!depCols.isEmpty()) {
-                    queries.add(createSpillQuery(tableName, depCols));
+                    if (!depCols.isEmpty()) {
+                        queries.add(createSpillQuery(tableName, depCols));
+                    }
                 }
             }
+
+            execInTransaction(db, new QueryExecutor() {
+                @Override
+                public void exec(SQLiteDatabase db) {
+                    for (String query : queries) {
+                        LogUtil.toLog(query, true);
+                        db.execSQL(query);
+                    }
+                }
+            });
+            LogUtil.toLog("------------------------------");
         }
-
-        execInTransaction(db, new QueryExecutor() {
-            @Override
-            public void exec(SQLiteDatabase db) {
-                for (String query : queries) {
-                    LogUtil.toLog(query, true);
-                    db.execSQL(query);
-                }
-            }
-        });
-        LogUtil.toLog("------------------------------");
 
 
         //drop deprecated tables
         LogUtil.toLog("--- drop deprecated tables ---");
-        for(String tableName : tableNames){
+        for (String tableName : tableNames) {
             String query = "DROP TABLE IF EXISTS " + tableName + "_deprecated";
             LogUtil.toLog(query);
             db.execSQL(query);
         }
         LogUtil.toLog("------------------------------");
-
     }
 
     public String createSpillQuery(String tableName, List<String> cols){

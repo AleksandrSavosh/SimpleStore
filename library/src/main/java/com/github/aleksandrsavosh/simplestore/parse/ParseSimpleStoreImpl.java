@@ -13,6 +13,11 @@ import java.util.*;
 public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
 
     @Override
+    public <Model extends Base> boolean createFast(List<Model> model, Class<Model> modelClass) {
+        throw new UnsupportedOperationException("Not support create fast for Parse");
+    }
+
+    @Override
     public <Model extends Base> Model createThrowException(Model model) throws CreateException {
         try {
             Class clazz = model.getClass();

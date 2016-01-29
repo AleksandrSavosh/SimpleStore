@@ -6,6 +6,7 @@ import com.github.aleksandrsavosh.simplestore.SimpleStore;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Date;
 
 public class LogProxy implements InvocationHandler {
@@ -22,14 +23,22 @@ public class LogProxy implements InvocationHandler {
 
         //write args
         for(Object arg : args){
-            LogUtil.toLog("ARG (" + arg.getClass().getSimpleName() + "): " + arg.toString());
+            if(arg instanceof Collection){
+                LogUtil.toLog("ARG (" + arg.getClass().getSimpleName() + "): size: " + ((Collection) arg).size());
+            } else {
+                LogUtil.toLog("ARG (" + arg.getClass().getSimpleName() + "): " + arg.toString());
+            }
         }
         Date start = new Date();
 
         try {
             Object result = method.invoke(simpleStore, args);
             if(result != null) {
-                LogUtil.toLog("RESULT: " + result.toString());
+                if(result instanceof Collection) {
+                    LogUtil.toLog("RESULT (" + result.getClass() + "): " + ((Collection) result).size());
+                } else {
+                    LogUtil.toLog("RESULT: " + result.toString());
+                }
             }
             return result;
         } catch (InvocationTargetException e){
