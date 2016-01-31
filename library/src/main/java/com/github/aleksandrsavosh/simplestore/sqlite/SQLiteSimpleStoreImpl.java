@@ -29,7 +29,7 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
             String tableName = SimpleStoreUtil.getTableName(modelClass);
             Set<Field> fields = ReflectionUtil.getFields(modelClass, Const.fields);
 
-            int batchCount = 200;
+            int batchCount = 200 / fields.size();
             int countFullInserts = (models.size() / batchCount);
             int countRestRows = models.size() % batchCount;
 
@@ -113,8 +113,8 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
                 if (j + 1 != fields.size()) {
                     queryBuilder.append(",");
                 }
-                queryBuilder.append(" ").append(lineSeparator);
             }
+            queryBuilder.append(" ").append(lineSeparator);
             if (i + 1 != batchCount) {
                 queryBuilder.append("UNION ALL ").append(lineSeparator);
             }

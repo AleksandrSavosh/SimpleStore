@@ -24,11 +24,13 @@ public class ReflectionUtil {
         Set<Field> result = new HashSet<Field>();
         for(Field field : clazz.getFields()){
             if(fieldTypes.contains(field.getType())){
+                field.setAccessible(true);
                 result.add(field);
             }
         }
         for(Field field : clazz.getDeclaredFields()){
             if(fieldTypes.contains(field.getType())){
+                field.setAccessible(true);
                 result.add(field);
             }
         }
