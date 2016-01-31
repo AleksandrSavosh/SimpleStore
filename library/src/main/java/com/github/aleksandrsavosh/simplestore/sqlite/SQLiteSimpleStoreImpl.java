@@ -45,7 +45,9 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
                         statement.bindLong(index++, new Date().getTime());
                         Model model = models.get(i * batchCount + j);
                         for (Field field : fields) {
-                            if (field.getType().equals(Integer.class) || field.getType().equals(Long.class)) {
+                            if (field.getType().equals(Integer.class)){
+                                statement.bindLong(index++, field.getInt(model));
+                            } else if(field.getType().equals(Long.class)) {
                                 statement.bindLong(index++, field.getLong(model));
                             } else if (field.getType().equals(Date.class)) {
                                 statement.bindLong(index++, ((Date) field.get(model)).getTime());
@@ -71,7 +73,9 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
                     statement.bindLong(index++, new Date().getTime());
                     Model model = models.get(countFullInserts * batchCount + j);
                     for (Field field : fields) {
-                        if (field.getType().equals(Integer.class) || field.getType().equals(Long.class)) {
+                        if (field.getType().equals(Integer.class)){
+                            statement.bindLong(index++, field.getInt(model));
+                        } else if(field.getType().equals(Long.class)) {
                             statement.bindLong(index++, field.getLong(model));
                         } else if (field.getType().equals(Date.class)) {
                             statement.bindLong(index++, ((Date) field.get(model)).getTime());
