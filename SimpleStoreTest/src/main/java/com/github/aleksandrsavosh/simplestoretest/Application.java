@@ -8,6 +8,7 @@ import java.util.*;
 public class Application extends android.app.Application {
 
     public static class CCC extends Base {
+        public Long lfs = 49l;
         public String test = "test333выфывафваыыв";
         public String test2 = "testфывафывфывафыва2";
 
@@ -20,6 +21,7 @@ public class Application extends android.app.Application {
     }
 
     public static class BBB extends Base {
+        public Long ld = 15l;
         public String str = "test2";
         public AAA AAA = new AAA();
         public List<CCC> testList = new ArrayList<CCC>(){{
@@ -127,7 +129,7 @@ public class Application extends android.app.Application {
 
         manager.useLog(true);
 
-        manager.initLocalStore(26);
+        manager.initLocalStore(27);
         manager.isNeedSaveData(false);
         SimpleStore<Long> localStore = manager.getLocalStore();
 
