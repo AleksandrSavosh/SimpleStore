@@ -8,8 +8,8 @@ import java.util.*;
 public class Application extends android.app.Application {
 
     public static class CCC extends Base {
-        public Long lfs = 49l;
-        public String test = "test333выфывафваыыв";
+        public Long lfs = 50l;
+        public String test = "test";
         public String test2 = "testфывафывфывафыва2";
 
         @Override
@@ -135,15 +135,19 @@ public class Application extends android.app.Application {
 
 
         List<CCC> cccs = new ArrayList<CCC>();
-        for(int i = 0; i < 65111; i++){
-            cccs.add(new CCC());
-        }
+//        for(int i = 0; i < 30000; i++){
+//            cccs.add(new CCC());
+//        }
 //
-        localStore.createFast(cccs, CCC.class);
+//        localStore.createFast(cccs, CCC.class);
 
-        cccs = localStore.readAll(CCC.class);
+        localStore.deleteBy(CCC.class, new KeyValue("lfs", 50l), new KeyValue("test", "test"));
+
+        cccs = localStore.readBy(CCC.class, new KeyValue("lfs", 50l), new KeyValue("test", "test"));
         System.out.println("FINISH: " + cccs.size());
 
+//        public Long lfs = 50l;
+//        public String test = "test";
 
 //        manager.initCloudStore("cv5X8Il8up7Y4YvrBz6nM6icaf7lBYXfPlwQSmAR", "6fDQLSh7mmIqoZEU5V0BNOrFxHavGEFkVnNDZlrZ");
 //        SimpleStore<String> cloudStore = manager.getCloudStore();

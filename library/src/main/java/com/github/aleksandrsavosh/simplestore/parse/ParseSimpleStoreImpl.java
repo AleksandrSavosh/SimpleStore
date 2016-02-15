@@ -111,6 +111,11 @@ public class ParseSimpleStoreImpl extends AbstractSimpleStore<String> {
     }
 
     @Override
+    public <Model extends Base> boolean deleteByThrowException(Class<Model> clazz, KeyValue... keyValues) throws DeleteException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public <Model extends Base> Model createWithRelationsThrowException(Model model) throws CreateException {
         try {
             //create parent

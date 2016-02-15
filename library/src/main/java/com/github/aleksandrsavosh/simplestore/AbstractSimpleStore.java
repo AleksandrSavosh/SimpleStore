@@ -72,6 +72,16 @@ public abstract class AbstractSimpleStore<Pk> implements SimpleStore<Pk> {
     }
 
     @Override
+    public <Model extends Base> boolean deleteBy(Class<Model> clazz, KeyValue... keyValues) {
+        try {
+            return deleteByThrowException(clazz, keyValues);
+        } catch (DeleteException e) {
+            LogUtil.toLog("delete error", e);
+        }
+        return false;
+    }
+
+    @Override
     public <Model extends Base> Model createWithRelations(Model model) {
         try {
             return createWithRelationsThrowException(model);

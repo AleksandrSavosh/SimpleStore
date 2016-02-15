@@ -319,6 +319,99 @@ public class SQLiteSimpleStoreImpl extends AbstractSimpleStore<Long> {
     }
 
     @Override
+    public <Model extends Base> boolean deleteByThrowException(Class<Model> clazz, KeyValue... keyValues) throws DeleteException {
+        if(keyValues.length == 0){
+            throw new IllegalArgumentException();
+        }
+
+        String table = SimpleStoreUtil.getTableName(clazz);
+
+        //get file names from database
+        Cursor cursor = database.query(
+                table,
+                SimpleStoreUtil.getDataColumns(clazz),
+                SimpleStoreUtil.getSelectionFilter(keyValues),
+                SimpleStoreUtil.getSelectionFilterArguments(keyValues),
+                null, null, null
+        );
+        List<String> fileNames = new ArrayList<String>();
+        while(cursor.moveToNext()) {
+            for (Field field : ReflectionUtil.getFields(clazz, Const.dataFields)) {
+                field.setAccessible(true);
+                String fileName = cursor.getString(cursor.getColumnIndex(field.getName()));
+                if(fileName != null && fileName.length() > 0) {
+                    fileNames.add(fileName);
+                }
+            }
+        }
+
+        //delete from all relation table
+        List<String> allRelationTableNames = SimpleStoreUtil.getAllRelationTableNames(database, clazz);
+        String columnName = SimpleStoreUtil.getRelationTableColumn(clazz);
+        for(String relTable : allRelationTableNames){
+            String query = getQueryForDeleteDataFromRelationTable(relTable, table, columnName, keyValues);
+            LogUtil.toLog("delete from relation tables query: " + query);
+            database.rawQuery(query, SimpleStoreUtil.getSelectionFilterArguments(keyValues));
+        }
+
+        //delete from object table
+        int result = database.delete(
+                SimpleStoreUtil.getTableName(clazz),
+                SimpleStoreUtil.getSelectionFilter(keyValues),
+                SimpleStoreUtil.getSelectionFilterArguments(keyValues)
+        );
+
+
+        //delete files
+        for(String fileName : fileNames){
+            SimpleStoreUtil.deleteFile(fileName);
+        }
+
+        return result != 0;
+    }
+
+    private static String getQueryForDeleteDataFromRelationTable(String relTable, String table, String fkName, KeyValue... keyValues){
+//        StringBuilder builder = new StringBuilder();
+//        builder.append("delete from ").append(relTable);
+//        builder.append(" inner join ").append(table);
+//        builder.append(" on ").append(relTable).append(".").append(fkName).append(" = ").append(table).append("._id ");
+//
+//        Iterator<KeyValue> iterator = Arrays.asList(keyValues).iterator();
+//        if(iterator.hasNext()){
+//            builder.append("where ");
+//        }
+//
+//        while (iterator.hasNext()){
+//            builder.append(table).append(".").append(iterator.next().key).append("=?");
+//            if(iterator.hasNext()){
+//                builder.append(" and ");
+//            }
+//        }
+//
+//        return builder.toString();
+        StringBuilder builder = new StringBuilder();
+        builder.append(" delete from ").append(relTable);
+        builder.append(" where ").append(fkName).append(" in ( ");
+
+        builder.append(" select _id from ").append(table);
+        Iterator<KeyValue> iterator = Arrays.asList(keyValues).iterator();
+        if(iterator.hasNext()){
+            builder.append(" where ");
+        }
+
+        while (iterator.hasNext()){
+            builder.append(table).append(".").append(iterator.next().key).append("=?");
+            if(iterator.hasNext()){
+                builder.append(" and ");
+            }
+        }
+
+        builder.append(" )");
+
+        return builder.toString();
+    }
+
+    @Override
     public <Model extends Base> Model createWithRelationsThrowException(Model model) throws CreateException {
         try {
             //create parent
